@@ -1,5 +1,11 @@
 import { useState } from "react";
 import PriceChart from "./PriceChart";
+import AnimatedNumber from "./components/AnimatedNumber";
+import CardSkeleton from "./components/Skeleton";
+import Spinner from "./components/Spinner";
+import Toast from "./components/Toast";
+import TopBar from "./components/TopBar";
+import { IconBulb, IconChart, IconWave } from "./components/icons";
 import type {
   AdvisorResult,
   AgentsRunResponse,
@@ -10,6 +16,15 @@ import type {
   Signal,
 } from "./types";
 
+/** 预设城市，下拉可选；也允许手动输入三字码 */
+const CITIES = [
+  { code: "BJS", name: "北京" },
+  { code: "SHA", name: "上海" },
+  { code: "CAN", name: "广州" },
+  { code: "SZX", name: "深圳" },
+  { code: "CTU", name: "成都" },
+];
+
 /** 默认航班日期：今天 +10 天 */
 function defaultFlightDate(): string {
   const d = new Date();
@@ -17,36 +32,74 @@ function defaultFlightDate(): string {
   return d.toISOString().slice(0, 10);
 }
 
-/** 信号对应的中文与配色 */
-const SIGNAL_STYLE: Record<
-  Signal,
-  { label: string; badge: string; border: string; bg: string }
-> = {
-  buy_now: {
-    label: "立即购买",
-    badge: "bg-emerald-100 text-emerald-700",
-    border: "border-emerald-200",
-    bg: "bg-emerald-50",
-  },
-  consider: {
-    label: "可以考虑",
-    badge: "bg-amber-100 text-amber-700",
-    border: "border-amber-200",
-    bg: "bg-amber-50",
-  },
-  wait: {
-    label: "继续等待",
-    badge: "bg-slate-100 text-slate-600",
-    border: "border-slate-200",
-    bg: "bg-slate-50",
-  },
-};
+/** 信号对应的中文与配色（保持克制：仅用小圆点与文字着色） */
+const SIGNAL_STYLE: Record<Signal, { label: string; dot: string; text: string }> =
+  {
+    buy_now: { label: "立即购买", dot: "bg-[#34c759]", text: "text-[#1a8c3c]" },
+    consider: { label: "可以考虑", dot: "bg-[#ff9500]", text: "text-[#b26a00]" },
+    wait: { label: "继续等待", dot: "bg-hairline", text: "text-subtle" },
+  };
 
 const URGENCY_LABEL: Record<string, string> = {
   high: "紧急",
   medium: "一般",
   low: "不急",
 };
+
+/** 卡片：纯白 + 大圆角 + 柔和阴影，hover 上浮 */
+const CARD =
+  "rounded-card bg-white p-8 shadow-card transition-all duration-250 ease-out-soft hover:-translate-y-0.5 hover:shadow-card-hover";
+
+/** 输入控件：浅灰底、无边框，聚焦时描边变蓝 */
+const CONTROL =
+  "w-full rounded-control border border-transparent bg-canvas px-3.5 py-2.5 text-[15px] text-ink outline-none transition-all duration-250 ease-out-soft placeholder:text-subtle/70 focus:border-accent focus:bg-white";
+
+const LABEL = "mb-2 block text-[13px] text-subtle";
+
+/** 卡片头部：圆形浅色底图标 + 标题 */
+function CardHeader({
+  icon,
+  title,
+  subtitle,
+  trailing,
+}: {
+  icon: React.ReactNode;
+  title: string;
+  subtitle: string;
+  trailing?: React.ReactNode;
+}) {
+  return (
+    <div className="mb-6 flex items-start justify-between">
+      <div className="flex items-center gap-3">
+        <span className="flex h-10 w-10 items-center justify-center rounded-full bg-canvas text-subtle">
+          {icon}
+        </span>
+        <div>
+          <h3 className="text-[15px] font-semibold tracking-tighter text-ink">
+            {title}
+          </h3>
+          <p className="text-[13px] text-subtle">{subtitle}</p>
+        </div>
+      </div>
+      {trailing}
+    </div>
+  );
+}
+
+/** 一行统计数据 */
+function StatRow({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="flex items-baseline justify-between py-2">
+      <span className="text-[13px] text-subtle">{label}</span>
+      <span className="tnum text-[15px] font-medium text-ink">{value}</span>
+    </div>
+  );
+}
+
+/** 未分析时的占位文案 */
+function Placeholder() {
+  return <p className="text-[15px] text-subtle">等待分析…</p>;
+}
 
 export default function App() {
   const [form, setForm] = useState<QueryForm>({
@@ -61,6 +114,7 @@ export default function App() {
   const [monitor, setMonitor] = useState<MonitorResult | null>(null);
   const [analyst, setAnalyst] = useState<AnalystResult | null>(null);
   const [advisor, setAdvisor] = useState<AdvisorResult | null>(null);
+  const [updatedAt, setUpdatedAt] = useState("");
 
   const updateForm = (key: keyof QueryForm, value: string) => {
     setForm((prev) => ({ ...prev, [key]: value }));
@@ -78,6 +132,7 @@ export default function App() {
 
   /** 点击「开始分析」：跑三 Agent 流水线，再刷新曲线 */
   const handleAnalyze = async () => {
+    if (loading) return; // 防重复点击
     setLoading(true);
     setError("");
     try {
@@ -103,235 +158,277 @@ export default function App() {
       setAnalyst(data.analyst);
       setAdvisor(data.advisor);
       await fetchHistory(origin, destination);
+      setUpdatedAt(
+        new Date().toLocaleTimeString("zh-CN", {
+          hour: "2-digit",
+          minute: "2-digit",
+        })
+      );
     } catch (e) {
-      setError(e instanceof Error ? e.message : "未知错误");
+      // fetch 网络层失败会抛 TypeError，说明后端没起来
+      setError(
+        e instanceof TypeError
+          ? "无法连接后端服务，请确认后端已启动"
+          : e instanceof Error
+            ? e.message
+            : "未知错误"
+      );
     } finally {
       setLoading(false);
     }
+  };
+
+  /** 输入框回车直接触发分析 */
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === "Enter") handleAnalyze();
   };
 
   const signal = analyst?.signal ?? "wait";
   const signalStyle = SIGNAL_STYLE[signal];
 
   return (
-    <div className="min-h-screen bg-slate-50 text-slate-800">
-      <div className="mx-auto max-w-6xl px-4 py-8 sm:px-6 lg:px-8">
-        {/* 品牌头部 */}
-        <header className="mb-8">
-          <h1 className="text-3xl font-bold tracking-tight text-slate-900 sm:text-4xl">
-            AirWise
-          </h1>
-          <p className="mt-1 text-slate-500">智能机票价格监测看板</p>
-        </header>
+    <div className="min-h-screen bg-canvas font-sans">
+      <TopBar />
 
-        {/* 查询栏 */}
-        <section className="mb-6 rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
+      {/* 错误提示条，3 秒自动消失 */}
+      {error && <Toast message={error} onClose={() => setError("")} />}
+
+      <main className="mx-auto max-w-[1100px] px-6 pb-24 pt-12">
+        {/* Hero 区 */}
+        <section className="animate-rise-in py-12 text-center">
+          <h1 className="text-[32px] font-bold leading-tight tracking-tighter text-ink sm:text-[40px]">
+            智能机票价格监测
+          </h1>
+          <p className="mt-4 text-[17px] text-subtle">
+            三个 Agent 协同采集、分析票价走势，告诉你什么时候该下单
+          </p>
+        </section>
+
+        {/* 查询卡片：居中，最大 720px */}
+        <section className="mx-auto mb-12 w-full max-w-[720px] animate-rise-in rounded-card bg-white p-8 shadow-card">
+          <div className="grid gap-5 sm:grid-cols-2">
             <label className="block">
-              <span className="mb-1 block text-xs font-medium text-slate-500">
-                出发地
-              </span>
+              <span className={LABEL}>出发地</span>
               <input
-                className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm uppercase focus:border-blue-400 focus:outline-none focus:ring-2 focus:ring-blue-100"
+                list="city-options"
+                className={`${CONTROL} uppercase`}
                 value={form.origin}
                 onChange={(e) => updateForm("origin", e.target.value)}
+                onKeyDown={handleKeyDown}
                 placeholder="BJS"
               />
             </label>
             <label className="block">
-              <span className="mb-1 block text-xs font-medium text-slate-500">
-                目的地
-              </span>
+              <span className={LABEL}>目的地</span>
               <input
-                className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm uppercase focus:border-blue-400 focus:outline-none focus:ring-2 focus:ring-blue-100"
+                list="city-options"
+                className={`${CONTROL} uppercase`}
                 value={form.destination}
                 onChange={(e) => updateForm("destination", e.target.value)}
+                onKeyDown={handleKeyDown}
                 placeholder="SHA"
               />
             </label>
+            {/* 预设城市，可选可手输 */}
+            <datalist id="city-options">
+              {CITIES.map((c) => (
+                <option key={c.code} value={c.code}>
+                  {c.name}
+                </option>
+              ))}
+            </datalist>
+
             <label className="block">
-              <span className="mb-1 block text-xs font-medium text-slate-500">
-                航班日期
-              </span>
+              <span className={LABEL}>航班日期</span>
               <input
                 type="date"
-                className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm focus:border-blue-400 focus:outline-none focus:ring-2 focus:ring-blue-100"
+                className={CONTROL}
                 value={form.flightDate}
                 onChange={(e) => updateForm("flightDate", e.target.value)}
+                onKeyDown={handleKeyDown}
               />
             </label>
             <label className="block">
-              <span className="mb-1 block text-xs font-medium text-slate-500">
-                目标价（可留空）
-              </span>
+              <span className={LABEL}>目标价（可留空）</span>
               <input
-                type="number"
-                className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm focus:border-blue-400 focus:outline-none focus:ring-2 focus:ring-blue-100"
+                type="text"
+                inputMode="numeric"
+                className={`${CONTROL} tnum`}
                 value={form.targetPrice}
-                onChange={(e) => updateForm("targetPrice", e.target.value)}
+                // 只保留数字，禁止其他字符
+                onChange={(e) =>
+                  updateForm("targetPrice", e.target.value.replace(/[^\d]/g, ""))
+                }
+                onKeyDown={handleKeyDown}
                 placeholder="800"
               />
             </label>
-            <div className="flex items-end">
-              <button
-                type="button"
-                onClick={handleAnalyze}
-                disabled={loading}
-                className="w-full rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white shadow-sm transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-60"
-              >
-                {loading ? "分析中…" : "开始分析"}
-              </button>
-            </div>
           </div>
-          {error && (
-            <p className="mt-3 text-sm text-red-600">{error}</p>
-          )}
+
+          <button
+            type="button"
+            onClick={handleAnalyze}
+            disabled={loading}
+            className="mt-7 flex w-full items-center justify-center gap-2 rounded-button bg-accent px-6 py-3 text-[16px] font-medium text-white transition-all duration-250 ease-out-soft hover:bg-accent-dark hover:shadow-[0_4px_16px_rgba(0,113,227,0.30)] disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            {loading && <Spinner />}
+            {loading ? "分析中..." : "开始分析"}
+          </button>
         </section>
 
-        {/* 价格曲线 */}
-        <section className="mb-6">
-          <h2 className="mb-3 text-sm font-semibold text-slate-600">
-            近 30 日最低价走势
-          </h2>
-          <PriceChart data={history} />
-        </section>
-
-        {/* 三 Agent 状态卡片 */}
-        <section className="grid gap-4 md:grid-cols-3">
-          {/* Monitor */}
-          <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
-            <div className="mb-3 flex items-center gap-2">
-              <span className="flex h-8 w-8 items-center justify-center rounded-full bg-blue-100 text-sm">
-                📡
+        {/* 曲线卡片 */}
+        <section className="mb-12 animate-rise-in rounded-card bg-white p-8 shadow-card transition-shadow duration-250 ease-out-soft hover:shadow-card-hover">
+          <div className="mb-5 flex items-baseline justify-between">
+            <h2 className="text-[18px] font-semibold tracking-tighter text-ink">
+              近 30 日最低价走势
+            </h2>
+            {updatedAt && (
+              <span className="text-[13px] text-subtle">
+                更新于 {updatedAt}
               </span>
-              <div>
-                <h3 className="font-semibold text-slate-800">Monitor</h3>
-                <p className="text-xs text-slate-400">价格采集</p>
-              </div>
-            </div>
-            {monitor ? (
-              <div>
-                <p className="text-4xl font-bold text-blue-600">
-                  {monitor.inserted}
-                </p>
-                <p className="mt-1 text-sm text-slate-500">
-                  条报价已入库 · {monitor.origin} → {monitor.destination}
-                </p>
-              </div>
+            )}
+          </div>
+          <PriceChart data={history} loading={loading} />
+        </section>
+
+        {/* 三张 Agent 卡片：等宽三列，间距 24px */}
+        <section className="grid gap-6 md:grid-cols-3">
+          {/* Monitor */}
+          <div className={CARD}>
+            {loading ? (
+              <CardSkeleton rows={2} />
             ) : (
-              <p className="text-sm text-slate-400">等待分析…</p>
+              <>
+                <CardHeader
+                  icon={<IconWave />}
+                  title="Monitor"
+                  subtitle="价格采集"
+                />
+                {monitor ? (
+                  <div className="animate-rise-in">
+                    <p className="text-[56px] font-bold leading-none tracking-tighter text-ink">
+                      <AnimatedNumber value={monitor.inserted} />
+                    </p>
+                    <p className="mt-4 text-[13px] text-subtle">
+                      条报价已入库 · {monitor.origin} → {monitor.destination}
+                    </p>
+                  </div>
+                ) : (
+                  <Placeholder />
+                )}
+              </>
             )}
           </div>
 
           {/* Analyst */}
-          <div
-            className={`rounded-xl border p-5 shadow-sm ${analyst ? `${signalStyle.border} ${signalStyle.bg}` : "border-slate-200 bg-white"}`}
-          >
-            <div className="mb-3 flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <span className="flex h-8 w-8 items-center justify-center rounded-full bg-violet-100 text-sm">
-                  📊
-                </span>
-                <div>
-                  <h3 className="font-semibold text-slate-800">Analyst</h3>
-                  <p className="text-xs text-slate-400">趋势分析</p>
-                </div>
-              </div>
-              {analyst && (
-                <span
-                  className={`rounded-full px-2 py-0.5 text-xs font-medium ${signalStyle.badge}`}
-                >
-                  {signalStyle.label}
-                </span>
-              )}
-            </div>
-            {analyst ? (
-              <div className="space-y-2 text-sm">
-                <div className="flex justify-between">
-                  <span className="text-slate-500">当前价</span>
-                  <span className="text-2xl font-bold text-slate-900">
-                    ¥{analyst.current?.toFixed(0) ?? "—"}
-                  </span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-slate-500">均价</span>
-                  <span className="font-medium">
-                    ¥{analyst.mean?.toFixed(0) ?? "—"}
-                  </span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-slate-500">历史最低</span>
-                  <span className="font-medium">
-                    ¥{analyst.min?.toFixed(0) ?? "—"}
-                  </span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-slate-500">更便宜天数占比</span>
-                  <span className="font-medium">
-                    {analyst.pct != null
-                      ? `${(analyst.pct * 100).toFixed(0)}%`
-                      : "—"}
-                  </span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-slate-500">置信度</span>
-                  <span className="font-medium">
-                    {(analyst.confidence * 100).toFixed(0)}%
-                  </span>
-                </div>
-                <p className="mt-2 text-xs leading-relaxed text-slate-600">
-                  {analyst.reason}
-                </p>
-              </div>
+          <div className={CARD}>
+            {loading ? (
+              <CardSkeleton rows={4} />
             ) : (
-              <p className="text-sm text-slate-400">等待分析…</p>
+              <>
+                <CardHeader
+                  icon={<IconChart />}
+                  title="Analyst"
+                  subtitle="趋势分析"
+                  trailing={
+                    analyst ? (
+                      <span
+                        className={`flex items-center gap-1.5 text-[13px] font-medium ${signalStyle.text}`}
+                      >
+                        <span
+                          className={`h-1.5 w-1.5 rounded-full ${signalStyle.dot}`}
+                        />
+                        {signalStyle.label}
+                      </span>
+                    ) : undefined
+                  }
+                />
+                {analyst ? (
+                  <div className="animate-rise-in">
+                    <p className="text-[48px] font-bold leading-none tracking-tighter text-ink">
+                      {analyst.current != null ? (
+                        <AnimatedNumber value={analyst.current} prefix="¥" />
+                      ) : (
+                        "—"
+                      )}
+                    </p>
+                    <p className="mt-3 text-[13px] text-subtle">当前最低价</p>
+                    <div className="mt-5 divide-y divide-hairline/60 border-t border-hairline/60">
+                      <StatRow
+                        label="均价"
+                        value={`¥${analyst.mean?.toFixed(0) ?? "—"}`}
+                      />
+                      <StatRow
+                        label="历史最低"
+                        value={`¥${analyst.min?.toFixed(0) ?? "—"}`}
+                      />
+                      <StatRow
+                        label="更便宜天数占比"
+                        value={
+                          analyst.pct != null
+                            ? `${(analyst.pct * 100).toFixed(0)}%`
+                            : "—"
+                        }
+                      />
+                      <StatRow
+                        label="置信度"
+                        value={`${(analyst.confidence * 100).toFixed(0)}%`}
+                      />
+                    </div>
+                    <p className="mt-5 text-[13px] leading-relaxed text-subtle">
+                      {analyst.reason}
+                    </p>
+                  </div>
+                ) : (
+                  <Placeholder />
+                )}
+              </>
             )}
           </div>
 
           {/* Advisor */}
-          <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
-            <div className="mb-3 flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <span className="flex h-8 w-8 items-center justify-center rounded-full bg-rose-100 text-sm">
-                  💡
-                </span>
-                <div>
-                  <h3 className="font-semibold text-slate-800">Advisor</h3>
-                  <p className="text-xs text-slate-400">购票建议</p>
-                </div>
-              </div>
-              {advisor && (
-                <span className="rounded-full bg-slate-100 px-2 py-0.5 text-xs text-slate-600">
-                  {URGENCY_LABEL[advisor.urgency] ?? advisor.urgency}
-                </span>
-              )}
-            </div>
-            {advisor ? (
-              <div>
-                <p
-                  className={`mb-3 text-3xl font-bold ${
-                    advisor.recommendation === "购买"
-                      ? "text-emerald-600"
-                      : advisor.recommendation === "观望"
-                        ? "text-amber-600"
-                        : "text-slate-500"
-                  }`}
-                >
-                  {advisor.recommendation}
-                </p>
-                <p className="text-base leading-relaxed text-slate-700">
-                  {advisor.message}
-                </p>
-                <p className="mt-3 text-xs text-slate-400">
-                  建议动作：{advisor.suggested_action}
-                  {advisor.llm_used && " · LLM 增强"}
-                </p>
-              </div>
+          <div className={CARD}>
+            {loading ? (
+              <CardSkeleton rows={3} />
             ) : (
-              <p className="text-sm text-slate-400">等待分析…</p>
+              <>
+                <CardHeader
+                  icon={<IconBulb />}
+                  title="Advisor"
+                  subtitle="购票建议"
+                  trailing={
+                    advisor ? (
+                      <span className="text-[13px] text-subtle">
+                        {URGENCY_LABEL[advisor.urgency] ?? advisor.urgency}
+                      </span>
+                    ) : undefined
+                  }
+                />
+                {advisor ? (
+                  <div className="animate-rise-in">
+                    <p className="text-[40px] font-bold leading-none tracking-tighter text-ink">
+                      {advisor.recommendation}
+                    </p>
+                    <p className="mt-5 text-[17px] leading-relaxed text-ink/80">
+                      {advisor.message}
+                    </p>
+                    <p className="mt-6 border-t border-hairline/60 pt-4 text-[13px] text-subtle">
+                      建议动作：{advisor.suggested_action}
+                      {advisor.llm_used && " · LLM 增强"}
+                    </p>
+                  </div>
+                ) : (
+                  <Placeholder />
+                )}
+              </>
             )}
           </div>
         </section>
+      </main>
+
+      {/* 右下角数据来源标签 */}
+      <div className="pointer-events-none fixed bottom-4 right-4 z-30 rounded-full border border-hairline/60 bg-white/72 px-3.5 py-1.5 text-[12px] text-subtle shadow-bar backdrop-blur-xl">
+        数据来源：模拟数据（可替换真实 API）
       </div>
     </div>
   );

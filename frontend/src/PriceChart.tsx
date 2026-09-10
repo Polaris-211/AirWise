@@ -4,58 +4,71 @@ import type { PriceHistoryPoint } from "./types";
 
 interface PriceChartProps {
   data: PriceHistoryPoint[];
+  /** 加载中显示遮罩 */
+  loading?: boolean;
 }
 
-/** 近 30 日最低价折线图，含均价线与最低点标注 */
-export default function PriceChart({ data }: PriceChartProps) {
-  if (data.length === 0) {
-    return (
-      <div className="flex h-72 items-center justify-center rounded-xl border border-dashed border-slate-200 bg-white text-slate-400">
-        暂无数据，请先点击开始分析
-      </div>
-    );
-  }
+const CHART_HEIGHT = 360;
 
+/** 近 30 日最低价折线图，含均价线与最低价点标注 */
+export default function PriceChart({ data, loading = false }: PriceChartProps) {
   const dates = data.map((d) => d.date);
   const prices = data.map((d) => d.min_price);
-  const mean = prices.reduce((a, b) => a + b, 0) / prices.length;
-  const minIdx = prices.indexOf(Math.min(...prices));
+  const mean =
+    prices.length > 0 ? prices.reduce((a, b) => a + b, 0) / prices.length : 0;
+  const minIdx = prices.length > 0 ? prices.indexOf(Math.min(...prices)) : -1;
 
   const option: EChartsOption = {
+    textStyle: {
+      fontFamily:
+        '-apple-system, BlinkMacSystemFont, "SF Pro Display", Inter, sans-serif',
+    },
     tooltip: {
       trigger: "axis",
+      backgroundColor: "rgba(255,255,255,0.92)",
+      borderWidth: 0,
+      padding: [8, 12],
+      extraCssText:
+        "border-radius:12px; box-shadow:0 4px 20px rgba(0,0,0,0.10); backdrop-filter:saturate(180%) blur(16px);",
+      textStyle: { color: "#1d1d1f", fontSize: 12 },
       formatter: (params) => {
         const p = Array.isArray(params) ? params[0] : params;
         if (!p || typeof p.value !== "number") return "";
-        return `${p.name}<br/>最低价：¥${p.value.toFixed(0)}`;
+        return `<span style="color:#86868b">${p.name}</span><br/><b>¥${p.value.toFixed(0)}</b>`;
       },
     },
-    grid: { left: 48, right: 24, top: 32, bottom: 40 },
+    grid: { left: 44, right: 28, top: 28, bottom: 32 },
     xAxis: {
       type: "category",
+      boundaryGap: false,
       data: dates,
-      axisLabel: { color: "#64748b", fontSize: 11 },
-      axisLine: { lineStyle: { color: "#e2e8f0" } },
+      axisLabel: { color: "#86868b", fontSize: 11, margin: 12 },
+      axisLine: { show: false },
+      axisTick: { show: false },
     },
     yAxis: {
       type: "value",
-      name: "价格 (¥)",
-      nameTextStyle: { color: "#94a3b8", fontSize: 11 },
       axisLabel: {
-        color: "#64748b",
+        color: "#86868b",
+        fontSize: 11,
+        margin: 12,
         formatter: (v: number) => `¥${v}`,
       },
-      splitLine: { lineStyle: { color: "#f1f5f9" } },
+      axisLine: { show: false },
+      axisTick: { show: false },
+      // 极细浅色网格线，几乎不可见
+      splitLine: { lineStyle: { color: "#f0f0f2", width: 1 } },
     },
     series: [
       {
         name: "最低价",
         type: "line",
-        smooth: true,
+        smooth: 0.4,
         symbol: "circle",
-        symbolSize: 6,
-        lineStyle: { width: 2, color: "#3b82f6" },
-        itemStyle: { color: "#3b82f6" },
+        symbolSize: 5,
+        showSymbol: false,
+        lineStyle: { width: 2, color: "#0071e3" },
+        itemStyle: { color: "#0071e3", borderColor: "#fff", borderWidth: 2 },
         areaStyle: {
           color: {
             type: "linear",
@@ -64,8 +77,8 @@ export default function PriceChart({ data }: PriceChartProps) {
             x2: 0,
             y2: 1,
             colorStops: [
-              { offset: 0, color: "rgba(59,130,246,0.18)" },
-              { offset: 1, color: "rgba(59,130,246,0.02)" },
+              { offset: 0, color: "rgba(0,113,227,0.10)" },
+              { offset: 1, color: "rgba(0,113,227,0)" },
             ],
           },
         },
@@ -73,31 +86,78 @@ export default function PriceChart({ data }: PriceChartProps) {
         markLine: {
           silent: true,
           symbol: "none",
-          lineStyle: { type: "dashed", color: "#f59e0b" },
+          lineStyle: { type: [4, 4], color: "#d2d2d7", width: 1 },
           label: {
             formatter: `均价 ¥${mean.toFixed(0)}`,
-            color: "#d97706",
+            color: "#86868b",
+            fontSize: 11,
+            padding: [0, 0, 4, 0],
           },
           data: [{ yAxis: mean }],
         },
         markPoint: {
-          symbol: "pin",
-          symbolSize: 42,
-          itemStyle: { color: "#22c55e" },
+          symbol: "circle",
+          symbolSize: 8,
+          itemStyle: { color: "#fff", borderColor: "#0071e3", borderWidth: 2 },
           label: {
-            formatter: "最低",
-            fontSize: 10,
-            color: "#fff",
+            formatter: minIdx >= 0 ? `最低 ¥${prices[minIdx].toFixed(0)}` : "",
+            position: "top",
+            distance: 8,
+            color: "#1d1d1f",
+            fontSize: 11,
+            fontWeight: 500,
           },
-          data: [{ name: "最低价", coord: [dates[minIdx], prices[minIdx]] }],
+          data:
+            minIdx >= 0
+              ? [{ name: "最低价", coord: [dates[minIdx], prices[minIdx]] }]
+              : [],
         },
       },
     ],
   };
 
   return (
-    <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
-      <ReactECharts option={option} style={{ height: 288 }} notMerge lazyUpdate />
+    <div className="relative">
+      {data.length === 0 ? (
+        <div
+          className="flex items-center justify-center text-[15px] text-subtle"
+          style={{ height: CHART_HEIGHT }}
+        >
+          暂无数据，请先点击开始分析
+        </div>
+      ) : (
+        <ReactECharts
+          option={option}
+          style={{ height: CHART_HEIGHT }}
+          notMerge
+          lazyUpdate
+        />
+      )}
+
+      {/* 加载遮罩：半透明毛玻璃 + spinner */}
+      {loading && (
+        <div className="absolute inset-0 flex items-center justify-center rounded-control bg-white/65 backdrop-blur-[2px] transition-opacity duration-250 ease-out-soft">
+          <div className="flex items-center gap-2.5 text-[14px] text-subtle">
+            <svg className="h-4 w-4 animate-spin" viewBox="0 0 24 24" fill="none">
+              <circle
+                cx="12"
+                cy="12"
+                r="9"
+                stroke="currentColor"
+                strokeWidth="2.5"
+                strokeOpacity="0.25"
+              />
+              <path
+                d="M21 12a9 9 0 0 0-9-9"
+                stroke="currentColor"
+                strokeWidth="2.5"
+                strokeLinecap="round"
+              />
+            </svg>
+            正在加载价格曲线…
+          </div>
+        </div>
+      )}
     </div>
   );
 }
