@@ -45,6 +45,21 @@ export interface PriceHistoryPoint {
   min_price: number;
 }
 
+/** GET /api/routes/{o}/{d}/prices 单条航班报价 */
+export interface FlightPriceRow {
+  id: number;
+  origin: string;
+  destination: string;
+  flight_date: string;
+  flight_no: string;
+  airline: string;
+  depart_time: string | null;
+  price: number;
+  currency: string;
+  source: string;
+  captured_at: string;
+}
+
 /** 查询表单 */
 export interface QueryForm {
   origin: string;

@@ -1,5 +1,6 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from sqlalchemy import text
 
 from .api.router import api_router
 from .config import settings
@@ -11,8 +12,20 @@ app = FastAPI(title=settings.app_name, version=settings.app_version)
 
 @app.on_event("startup")
 def create_tables():
-    """启动时按模型自动建表。"""
+    """启动时按模型自动建表，并补齐旧库缺失的列。"""
     Base.metadata.create_all(engine)
+    ensure_columns()
+
+
+def ensure_columns():
+    """SQLite 下 create_all 不会改已存在的表，这里手动补列。"""
+    with engine.begin() as conn:
+        rows = conn.execute(text("PRAGMA table_info(flight_prices)")).fetchall()
+        existing = {row[1] for row in rows}
+        if existing and "depart_time" not in existing:
+            conn.execute(
+                text("ALTER TABLE flight_prices ADD COLUMN depart_time VARCHAR(8)")
+            )
 
 app.add_middleware(
     CORSMiddleware,

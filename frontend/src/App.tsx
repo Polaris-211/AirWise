@@ -1,29 +1,24 @@
 import { useState } from "react";
 import PriceChart from "./PriceChart";
 import AnimatedNumber from "./components/AnimatedNumber";
+import CitySearchInput from "./components/CitySearchInput";
+import FlightList from "./components/FlightList";
 import CardSkeleton from "./components/Skeleton";
 import Spinner from "./components/Spinner";
 import Toast from "./components/Toast";
 import TopBar from "./components/TopBar";
 import { IconBulb, IconChart, IconWave } from "./components/icons";
+import { findCityByCode } from "./cities";
 import type {
   AdvisorResult,
   AgentsRunResponse,
   AnalystResult,
+  FlightPriceRow,
   MonitorResult,
   PriceHistoryPoint,
   QueryForm,
   Signal,
 } from "./types";
-
-/** 预设城市，下拉可选；也允许手动输入三字码 */
-const CITIES = [
-  { code: "BJS", name: "北京" },
-  { code: "SHA", name: "上海" },
-  { code: "CAN", name: "广州" },
-  { code: "SZX", name: "深圳" },
-  { code: "CTU", name: "成都" },
-];
 
 /** 默认航班日期：今天 +10 天 */
 function defaultFlightDate(): string {
@@ -111,10 +106,17 @@ export default function App() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [history, setHistory] = useState<PriceHistoryPoint[]>([]);
+  const [flights, setFlights] = useState<FlightPriceRow[]>([]);
   const [monitor, setMonitor] = useState<MonitorResult | null>(null);
   const [analyst, setAnalyst] = useState<AnalystResult | null>(null);
   const [advisor, setAdvisor] = useState<AdvisorResult | null>(null);
   const [updatedAt, setUpdatedAt] = useState("");
+  /** 航班列表对应的航线与日期，用于标题展示 */
+  const [queried, setQueried] = useState<{
+    origin: string;
+    destination: string;
+    date: string;
+  } | null>(null);
 
   const updateForm = (key: keyof QueryForm, value: string) => {
     setForm((prev) => ({ ...prev, [key]: value }));
@@ -128,6 +130,20 @@ export default function App() {
     if (!res.ok) throw new Error("历史价格加载失败");
     const data: PriceHistoryPoint[] = await res.json();
     setHistory(data);
+  };
+
+  /** 拉取该航线该日期的全部航班报价 */
+  const fetchFlights = async (
+    origin: string,
+    destination: string,
+    flightDate: string
+  ) => {
+    const res = await fetch(
+      `/api/routes/${origin}/${destination}/prices?flight_date=${flightDate}`
+    );
+    if (!res.ok) throw new Error("航班列表加载失败");
+    const data: FlightPriceRow[] = await res.json();
+    setFlights(data);
   };
 
   /** 点击「开始分析」：跑三 Agent 流水线，再刷新曲线 */
@@ -157,7 +173,11 @@ export default function App() {
       setMonitor(data.monitor);
       setAnalyst(data.analyst);
       setAdvisor(data.advisor);
-      await fetchHistory(origin, destination);
+      await Promise.all([
+        fetchHistory(origin, destination),
+        fetchFlights(origin, destination, form.flightDate),
+      ]);
+      setQueried({ origin, destination, date: form.flightDate });
       setUpdatedAt(
         new Date().toLocaleTimeString("zh-CN", {
           hour: "2-digit",
@@ -187,7 +207,7 @@ export default function App() {
   const signalStyle = SIGNAL_STYLE[signal];
 
   return (
-    <div className="min-h-screen bg-canvas font-sans">
+    <div className="app-bg min-h-screen font-sans">
       <TopBar />
 
       {/* 错误提示条，3 秒自动消失 */}
@@ -207,36 +227,21 @@ export default function App() {
         {/* 查询卡片：居中，最大 720px */}
         <section className="mx-auto mb-12 w-full max-w-[720px] animate-rise-in rounded-card bg-white p-8 shadow-card">
           <div className="grid gap-5 sm:grid-cols-2">
-            <label className="block">
-              <span className={LABEL}>出发地</span>
-              <input
-                list="city-options"
-                className={`${CONTROL} uppercase`}
-                value={form.origin}
-                onChange={(e) => updateForm("origin", e.target.value)}
-                onKeyDown={handleKeyDown}
-                placeholder="BJS"
-              />
-            </label>
-            <label className="block">
-              <span className={LABEL}>目的地</span>
-              <input
-                list="city-options"
-                className={`${CONTROL} uppercase`}
-                value={form.destination}
-                onChange={(e) => updateForm("destination", e.target.value)}
-                onKeyDown={handleKeyDown}
-                placeholder="SHA"
-              />
-            </label>
-            {/* 预设城市，可选可手输 */}
-            <datalist id="city-options">
-              {CITIES.map((c) => (
-                <option key={c.code} value={c.code}>
-                  {c.name}
-                </option>
-              ))}
-            </datalist>
+            {/* 搜索式城市选择：中文 / 拼音 / 三字码都能匹配 */}
+            <CitySearchInput
+              label="出发地"
+              value={form.origin}
+              onChange={(code) => updateForm("origin", code)}
+              onEnter={handleAnalyze}
+              placeholder="城市 / 拼音 / 三字码"
+            />
+            <CitySearchInput
+              label="目的地"
+              value={form.destination}
+              onChange={(code) => updateForm("destination", code)}
+              onEnter={handleAnalyze}
+              placeholder="城市 / 拼音 / 三字码"
+            />
 
             <label className="block">
               <span className={LABEL}>航班日期</span>
@@ -289,6 +294,24 @@ export default function App() {
             )}
           </div>
           <PriceChart data={history} loading={loading} />
+        </section>
+
+        {/* 可选航班列表 */}
+        <section className="mb-12 animate-rise-in rounded-card bg-white p-8 shadow-card transition-shadow duration-250 ease-out-soft hover:shadow-card-hover">
+          <div className="mb-4 flex items-baseline justify-between">
+            <h2 className="text-[18px] font-semibold tracking-tighter text-ink">
+              可选航班
+            </h2>
+            {queried && (
+              <span className="text-[13px] text-subtle">
+                {findCityByCode(queried.origin)?.name ?? queried.origin} →{" "}
+                {findCityByCode(queried.destination)?.name ??
+                  queried.destination}{" "}
+                · {queried.date}
+              </span>
+            )}
+          </div>
+          <FlightList flights={flights} loading={loading} />
         </section>
 
         {/* 三张 Agent 卡片：等宽三列，间距 24px */}

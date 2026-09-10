@@ -71,6 +71,7 @@ def list_prices(
                 "flight_date": row.flight_date.isoformat(),
                 "flight_no": row.flight_no,
                 "airline": row.airline,
+                "depart_time": row.depart_time,
                 "price": row.price,
                 "currency": row.currency,
                 "source": row.source,

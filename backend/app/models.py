@@ -17,6 +17,7 @@ class FlightPrice(Base):
     flight_date: Mapped[date] = mapped_column(Date, nullable=False)
     flight_no: Mapped[str] = mapped_column(String(16), nullable=False)
     airline: Mapped[str] = mapped_column(String(64), nullable=False)
+    depart_time: Mapped[str | None] = mapped_column(String(8), nullable=True)
     price: Mapped[float] = mapped_column(Float, nullable=False)
     currency: Mapped[str] = mapped_column(String(8), nullable=False, default="CNY")
     source: Mapped[str] = mapped_column(String(32), nullable=False)

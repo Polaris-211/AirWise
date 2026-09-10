@@ -28,6 +28,7 @@ class MonitorAgent:
                         flight_date=flight_date,
                         flight_no=item["flight_no"],
                         airline=item["airline"],
+                        depart_time=item.get("depart_time"),
                         price=item["price"],
                         currency=item.get("currency", "CNY"),
                         source=source_name,
