@@ -1,7 +1,7 @@
 # Day 3 — 多 Agent 协同 + DeepSeek LLM 接入
 日期：2026-09-10
 
-## 我的 Prompt（发给 Cursor 的原话，摘录核心）
+## 我的 Prompt
 
 > 在 AirWise 项目基础上，实现完整的"多 Agent 协同"：Analyst Agent、Advisor Agent、
 > Orchestrator 编排，并接入 DeepSeek LLM 让两个 Agent"会说话"。
@@ -53,7 +53,7 @@ Body: {"origin":"BJS","destination":"SHA","flight_date":"2026-09-20","target_pri
 - Claude Opus 5 高负载 → 切 Composer 2.5 完成启动任务
 - 后端未启动 → 让 Cursor Agent 直接启动，并确认 /api/health 与新接口
 
-## 架构亮点（答辩可用）
+## 架构亮点
 
 1. 三 Agent 协同：Monitor（采集）→ Analyst（判断）→ Advisor（建议），
    由 AgentOrchestrator 串联，单次调用完成完整决策链。
