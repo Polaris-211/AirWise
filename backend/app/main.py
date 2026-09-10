@@ -3,8 +3,16 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from .api.router import api_router
 from .config import settings
+from .db import Base, engine
+from . import models  # noqa: F401  注册表模型，供建表使用
 
 app = FastAPI(title=settings.app_name, version=settings.app_version)
+
+
+@app.on_event("startup")
+def create_tables():
+    """启动时按模型自动建表。"""
+    Base.metadata.create_all(engine)
 
 app.add_middleware(
     CORSMiddleware,

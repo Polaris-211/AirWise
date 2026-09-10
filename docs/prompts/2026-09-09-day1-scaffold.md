@@ -1,6 +1,6 @@
 # AirWise 项目骨架生成 — 2026-09-09
 
-## 我的 Prompt（原话）
+## 我的 Prompt
 > 我要做一个名为「AirWise」的智能机票价格监测 Web App，
 > 参加传智杯 Vibe Coding 比赛。技术栈：FastAPI + SQLAlchemy +
 > SQLite + LangChain + React + Vite + ECharts + Tailwind CSS。
