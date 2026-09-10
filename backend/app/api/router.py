@@ -1,22 +1,34 @@
-from datetime import date, timedelta
+from datetime import date
 
 from fastapi import APIRouter, Query
 from pydantic import BaseModel
-from sqlalchemy import func, select
+from sqlalchemy import select
 
-from ..agents.monitor import MonitorAgent
+from ..agents.advisor import AdvisorAgent
+from ..agents.analyst import AnalystAgent
+from ..agents.orchestrator import AgentOrchestrator
 from ..db import SessionLocal
 from ..models import FlightPrice
-from ..sources.mock_source import MockPriceSource
+from ..queries import daily_min_prices
 
 api_router = APIRouter()
-monitor_agent = MonitorAgent(MockPriceSource())
+orchestrator = AgentOrchestrator()
+monitor_agent = orchestrator.monitor
+analyst_agent: AnalystAgent = orchestrator.analyst
+advisor_agent: AdvisorAgent = orchestrator.advisor
 
 
 class MonitorRunBody(BaseModel):
     origin: str
     destination: str
     flight_date: date
+
+
+class AgentsRunBody(BaseModel):
+    origin: str
+    destination: str
+    flight_date: date
+    target_price: float | None = None
 
 
 @api_router.get("/api/ping")
@@ -77,24 +89,32 @@ def list_history(
     days: int = Query(30, ge=1, le=365),
 ):
     """近 N 天每日最低价，供前端画曲线。"""
-    origin = origin.upper()
-    destination = destination.upper()
-    start = date.today() - timedelta(days=days - 1)
-    db = SessionLocal()
-    try:
-        stmt = (
-            select(FlightPrice.flight_date, func.min(FlightPrice.price))
-            .where(
-                FlightPrice.origin == origin,
-                FlightPrice.destination == destination,
-                FlightPrice.flight_date >= start,
-            )
-            .group_by(FlightPrice.flight_date)
-            .order_by(FlightPrice.flight_date.asc())
-        )
-        rows = db.execute(stmt).all()
-        return [
-            {"date": day.isoformat(), "min_price": min_price} for day, min_price in rows
-        ]
-    finally:
-        db.close()
+    return daily_min_prices(origin, destination, days)
+
+
+@api_router.get("/api/insights/{origin}/{destination}")
+def get_insights(
+    origin: str,
+    destination: str,
+    days: int = Query(30, ge=1, le=365),
+    target_price: float | None = Query(None, description="目标价，可空"),
+):
+    """基于已入库的历史价格跑 Analyst + Advisor，不触发新采集。"""
+    prices = daily_min_prices(origin, destination, days)
+    analyst_result = analyst_agent.analyze(prices)
+    advisor_result = advisor_agent.advise(
+        analyst_result,
+        {"target_price": target_price, "trip_date": None},
+    )
+    return {"analyst": analyst_result, "advisor": advisor_result}
+
+
+@api_router.post("/api/agents/run")
+def run_agents(body: AgentsRunBody):
+    """完整跑三 Agent 流水线：采集 → 分析 → 建议。"""
+    return orchestrator.run_pipeline(
+        body.origin,
+        body.destination,
+        body.flight_date,
+        body.target_price,
+    )
