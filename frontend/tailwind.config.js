@@ -41,7 +41,8 @@ export default {
         bar: "0 1px 0 rgba(0,0,0,0.04)",
       },
       transitionTimingFunction: {
-        "ease-out-soft": "cubic-bezier(0.25, 0.46, 0.45, 0.94)",
+        // key 会自动带上 ease- 前缀，这里写 out-soft 才生成 .ease-out-soft
+        "out-soft": "cubic-bezier(0.25, 0.46, 0.45, 0.94)",
       },
       transitionDuration: {
         250: "250ms",

@@ -3,6 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy import text
 
 from .api.router import api_router
+from .backfill import ensure_history
 from .config import settings
 from .db import Base, engine
 from .scheduler import monitor_scheduler
@@ -19,6 +20,12 @@ def create_tables():
 
 
 @app.on_event("startup")
+def backfill_history():
+    """建表后补齐历史：不足 30 天时自动回填，价格曲线一开始就有走势。"""
+    ensure_history()
+
+
+@app.on_event("startup")
 def start_scheduler():
     """建表之后再启动定时监测（内部已做防重复启动，--reload 安全）。"""
     monitor_scheduler.start()
@@ -29,15 +36,31 @@ def stop_scheduler():
     monitor_scheduler.shutdown()
 
 
+# 后加的列 -> SQLite 类型。新库由 create_all 直接建好，这里只补旧库
+_LATE_COLUMNS = {
+    "depart_time": "VARCHAR(8)",
+    "dep_airport": "VARCHAR(8)",
+    "arr_airport": "VARCHAR(8)",
+    "base_price": "FLOAT",
+    "tax_airport": "FLOAT",
+    "tax_fuel": "FLOAT",
+    "price_no_baggage": "FLOAT",
+    "price_with_baggage": "FLOAT",
+}
+
+
 def ensure_columns():
     """SQLite 下 create_all 不会改已存在的表，这里手动补列。"""
     with engine.begin() as conn:
         rows = conn.execute(text("PRAGMA table_info(flight_prices)")).fetchall()
         existing = {row[1] for row in rows}
-        if existing and "depart_time" not in existing:
-            conn.execute(
-                text("ALTER TABLE flight_prices ADD COLUMN depart_time VARCHAR(8)")
-            )
+        if not existing:
+            return
+        for name, column_type in _LATE_COLUMNS.items():
+            if name not in existing:
+                conn.execute(
+                    text(f"ALTER TABLE flight_prices ADD COLUMN {name} {column_type}")
+                )
 
 
 app.add_middleware(

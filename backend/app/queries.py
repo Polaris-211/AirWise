@@ -7,10 +7,15 @@ from .models import FlightPrice
 
 
 def daily_min_prices(origin: str, destination: str, days: int = 30) -> list[dict]:
-    """近 N 天该航线每日最低价，按日期升序，形如 [{date, min_price}, ...]。"""
+    """近 N 天该航线每日最低价，按日期升序，形如 [{date, min_price}, ...]。
+
+    只统计到今天为止：监测任务盯的是「今天 + 10 天」的未来航班日期，
+    不加上界的话曲线尾部会多出一个孤立的未来点。
+    """
     origin = origin.upper()
     destination = destination.upper()
-    start = date.today() - timedelta(days=days - 1)
+    end = date.today()
+    start = end - timedelta(days=days - 1)
 
     db = SessionLocal()
     try:
@@ -20,6 +25,7 @@ def daily_min_prices(origin: str, destination: str, days: int = 30) -> list[dict
                 FlightPrice.origin == origin,
                 FlightPrice.destination == destination,
                 FlightPrice.flight_date >= start,
+                FlightPrice.flight_date <= end,
             )
             .group_by(FlightPrice.flight_date)
             .order_by(FlightPrice.flight_date.asc())

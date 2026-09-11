@@ -11,5 +11,7 @@ class PriceSource(ABC):
     ) -> list[dict]:
         """拉取某航线某日的报价。
 
-        每条 dict 含：flight_no, airline, price, currency, depart_time。
+        每条 dict 含：flight_no, airline, depart_time, currency,
+        dep_airport, arr_airport, base_price, tax_airport, tax_fuel,
+        price_no_baggage, price_with_baggage, price（= price_no_baggage）。
         """

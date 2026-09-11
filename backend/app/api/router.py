@@ -1,12 +1,13 @@
 from datetime import date
 
 from fastapi import APIRouter, Query
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from sqlalchemy import select
 
 from ..agents.advisor import AdvisorAgent
 from ..agents.analyst import AnalystAgent
 from ..agents.orchestrator import AgentOrchestrator
+from ..backfill import HISTORY_DAYS, backfill_routes
 from ..db import SessionLocal
 from ..models import FlightPrice
 from ..queries import daily_min_prices
@@ -25,6 +26,14 @@ class MonitorRunBody(BaseModel):
     flight_date: date
 
 
+class BackfillBody(BaseModel):
+    """回填参数；航线留空表示按内置关注航线全量回填。"""
+
+    origin: str | None = None
+    destination: str | None = None
+    days: int = Field(default=HISTORY_DAYS, ge=1, le=365)
+
+
 class AgentsRunBody(BaseModel):
     origin: str
     destination: str
@@ -41,6 +50,18 @@ def ping():
 def run_monitor(body: MonitorRunBody):
     """触发一次票价采集。"""
     return monitor_agent.run(body.origin, body.destination, body.flight_date)
+
+
+@api_router.post("/api/monitor/backfill")
+def run_backfill(body: BackfillBody | None = None):
+    """手动回填历史票价。已有数据的日期会跳过，可重复调用。"""
+    params = body or BackfillBody()
+    routes = (
+        [(params.origin, params.destination)]
+        if params.origin and params.destination
+        else None
+    )
+    return backfill_routes(routes, params.days)
 
 
 @api_router.get("/api/routes/{origin}/{destination}/prices")
@@ -73,7 +94,14 @@ def list_prices(
                 "flight_no": row.flight_no,
                 "airline": row.airline,
                 "depart_time": row.depart_time,
+                "dep_airport": row.dep_airport,
+                "arr_airport": row.arr_airport,
                 "price": row.price,
+                "base_price": row.base_price,
+                "tax_airport": row.tax_airport,
+                "tax_fuel": row.tax_fuel,
+                "price_no_baggage": row.price_no_baggage,
+                "price_with_baggage": row.price_with_baggage,
                 "currency": row.currency,
                 "source": row.source,
                 "captured_at": row.captured_at.isoformat(timespec="seconds"),

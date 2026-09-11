@@ -1,6 +1,7 @@
 import { useState } from "react";
 import PriceChart from "./PriceChart";
 import AnimatedNumber from "./components/AnimatedNumber";
+import BaggageToggle from "./components/BaggageToggle";
 import CitySearchInput from "./components/CitySearchInput";
 import FlightList from "./components/FlightList";
 import CardSkeleton from "./components/Skeleton";
@@ -111,6 +112,8 @@ export default function App() {
   const [analyst, setAnalyst] = useState<AnalystResult | null>(null);
   const [advisor, setAdvisor] = useState<AdvisorResult | null>(null);
   const [updatedAt, setUpdatedAt] = useState("");
+  /** 行李偏好：默认有行李，决定航班列表展示哪个总价 */
+  const [withBaggage, setWithBaggage] = useState(true);
   /** 航班列表对应的航线与日期，用于标题展示 */
   const [queried, setQueried] = useState<{
     origin: string;
@@ -298,20 +301,28 @@ export default function App() {
 
         {/* 可选航班列表 */}
         <section className="mb-12 animate-rise-in rounded-card bg-white p-8 shadow-card transition-shadow duration-250 ease-out-soft hover:shadow-card-hover">
-          <div className="mb-4 flex items-baseline justify-between">
-            <h2 className="text-[18px] font-semibold tracking-tighter text-ink">
-              可选航班
-            </h2>
-            {queried && (
-              <span className="text-[13px] text-subtle">
-                {findCityByCode(queried.origin)?.name ?? queried.origin} →{" "}
-                {findCityByCode(queried.destination)?.name ??
-                  queried.destination}{" "}
-                · {queried.date}
-              </span>
-            )}
+          <div className="mb-4 flex items-start justify-between gap-4">
+            <div>
+              <h2 className="text-[18px] font-semibold tracking-tighter text-ink">
+                可选航班
+              </h2>
+              {queried && (
+                <p className="mt-1 text-[13px] text-subtle">
+                  {findCityByCode(queried.origin)?.name ?? queried.origin} →{" "}
+                  {findCityByCode(queried.destination)?.name ??
+                    queried.destination}{" "}
+                  · {queried.date}
+                </p>
+              )}
+            </div>
+            {/* 行李偏好：切换含 / 不含托运行李的总价 */}
+            <BaggageToggle checked={withBaggage} onChange={setWithBaggage} />
           </div>
-          <FlightList flights={flights} loading={loading} />
+          <FlightList
+            flights={flights}
+            loading={loading}
+            withBaggage={withBaggage}
+          />
         </section>
 
         {/* 三张 Agent 卡片：等宽三列，间距 24px */}

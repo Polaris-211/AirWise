@@ -54,7 +54,21 @@ export interface FlightPriceRow {
   flight_no: string;
   airline: string;
   depart_time: string | null;
+  /** 出发 / 到达机场三字码 */
+  dep_airport: string | null;
+  arr_airport: string | null;
+  /** 不含行李总价，与历史曲线口径一致 */
   price: number;
+  /** 票面价（不含税费） */
+  base_price: number | null;
+  /** 机建费，固定 50 */
+  tax_airport: number | null;
+  /** 燃油附加费，按航程浮动 */
+  tax_fuel: number | null;
+  /** 票面 + 机建 + 燃油 */
+  price_no_baggage: number | null;
+  /** 不含行李总价 + 行李费 */
+  price_with_baggage: number | null;
   currency: string;
   source: string;
   captured_at: string;
