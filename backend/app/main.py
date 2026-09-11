@@ -5,6 +5,7 @@ from sqlalchemy import text
 from .api.router import api_router
 from .config import settings
 from .db import Base, engine
+from .scheduler import monitor_scheduler
 from . import models  # noqa: F401  注册表模型，供建表使用
 
 app = FastAPI(title=settings.app_name, version=settings.app_version)
@@ -17,6 +18,17 @@ def create_tables():
     ensure_columns()
 
 
+@app.on_event("startup")
+def start_scheduler():
+    """建表之后再启动定时监测（内部已做防重复启动，--reload 安全）。"""
+    monitor_scheduler.start()
+
+
+@app.on_event("shutdown")
+def stop_scheduler():
+    monitor_scheduler.shutdown()
+
+
 def ensure_columns():
     """SQLite 下 create_all 不会改已存在的表，这里手动补列。"""
     with engine.begin() as conn:
@@ -26,6 +38,7 @@ def ensure_columns():
             conn.execute(
                 text("ALTER TABLE flight_prices ADD COLUMN depart_time VARCHAR(8)")
             )
+
 
 app.add_middleware(
     CORSMiddleware,

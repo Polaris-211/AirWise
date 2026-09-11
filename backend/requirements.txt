@@ -6,3 +6,4 @@ openai
 langchain
 langchain-openai
 python-dotenv
+apscheduler>=3.10,<4

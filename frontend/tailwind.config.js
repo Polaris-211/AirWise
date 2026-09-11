@@ -57,11 +57,23 @@ export default {
           "0%": { opacity: "0", transform: "translateY(-12px)" },
           "100%": { opacity: "1", transform: "translateY(0)" },
         },
+        // 状态点呼吸：极轻微的明暗起伏
+        breathe: {
+          "0%, 100%": { opacity: "1" },
+          "50%": { opacity: "0.5" },
+        },
+        // 状态点外扩光晕，一圈淡出
+        halo: {
+          "0%": { transform: "scale(1)", opacity: "0.35" },
+          "70%, 100%": { transform: "scale(2.4)", opacity: "0" },
+        },
       },
       animation: {
         "rise-in": "rise-in 250ms cubic-bezier(0.25, 0.46, 0.45, 0.94) both",
         "slide-down":
           "slide-down 250ms cubic-bezier(0.25, 0.46, 0.45, 0.94) both",
+        breathe: "breathe 2.6s cubic-bezier(0.4, 0, 0.6, 1) infinite",
+        halo: "halo 2.6s cubic-bezier(0.25, 0.46, 0.45, 0.94) infinite",
       },
     },
   },

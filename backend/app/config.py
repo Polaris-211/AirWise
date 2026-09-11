@@ -12,6 +12,9 @@ class Settings(BaseSettings):
     llm_base_url: str = "https://api.deepseek.com/v1"
     llm_model: str = "deepseek-chat"
 
+    # 自动监测间隔（分钟）。调试时可在 .env 里改成 1 便于观察
+    monitor_interval_minutes: int = 30
+
     class Config:
         env_file = ".env"
         extra = "ignore"

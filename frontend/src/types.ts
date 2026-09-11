@@ -60,6 +60,34 @@ export interface FlightPriceRow {
   captured_at: string;
 }
 
+/** 单条航线的监测结果 */
+export interface SchedulerRouteResult {
+  route: string;
+  inserted: number;
+  error: string | null;
+}
+
+/** 一次自动监测的执行记录 */
+export interface SchedulerRun {
+  ran_at: string;
+  trigger: "auto" | "manual";
+  flight_date: string;
+  routes: SchedulerRouteResult[];
+  inserted: number;
+  duration_ms: number;
+}
+
+/** GET /api/scheduler/status 响应 */
+export interface SchedulerStatus {
+  running: boolean;
+  interval_minutes: number;
+  watched_routes: string[];
+  last_run: SchedulerRun | null;
+  next_run: string | null;
+  total_runs: number;
+  recent_runs: SchedulerRun[];
+}
+
 /** 查询表单 */
 export interface QueryForm {
   origin: string;

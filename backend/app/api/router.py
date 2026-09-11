@@ -10,6 +10,7 @@ from ..agents.orchestrator import AgentOrchestrator
 from ..db import SessionLocal
 from ..models import FlightPrice
 from ..queries import daily_min_prices
+from ..scheduler import monitor_scheduler
 
 api_router = APIRouter()
 orchestrator = AgentOrchestrator()
@@ -119,3 +120,16 @@ def run_agents(body: AgentsRunBody):
         body.flight_date,
         body.target_price,
     )
+
+
+@api_router.get("/api/scheduler/status")
+def scheduler_status():
+    """自动监测的运行状态与最近执行记录。"""
+    return monitor_scheduler.status()
+
+
+@api_router.post("/api/scheduler/run-now")
+def scheduler_run_now():
+    """立即对全部关注航线手动触发一次监测。"""
+    run = monitor_scheduler.run_all(trigger="manual")
+    return {"run": run, "status": monitor_scheduler.status()}
