@@ -71,11 +71,11 @@ export default function MonitorStatus() {
 
   return (
     <div
-      className={`flex items-center gap-3 transition-opacity duration-250 ease-out-soft ${
+      className={`flex items-center gap-2 sm:gap-3 transition-opacity duration-250 ease-out-soft ${
         loaded ? "opacity-100" : "opacity-0"
       }`}
     >
-      {/* 状态点 + 文字 */}
+      {/* 状态点 + 文字；窄屏只留圆点，避免和品牌名抢行 */}
       <span className="flex items-center gap-2">
         <span className="relative flex h-2 w-2 items-center justify-center">
           {running && (
@@ -107,9 +107,14 @@ export default function MonitorStatus() {
         type="button"
         onClick={handleRunNow}
         disabled={busy}
-        className="whitespace-nowrap rounded-[10px] border border-white bg-white/60 px-2.5 py-1 text-[13px] text-accent backdrop-blur-sm transition-all duration-250 ease-out-soft hover:bg-white/80 active:scale-[0.97] disabled:cursor-not-allowed disabled:opacity-50"
+        className="whitespace-nowrap rounded-[10px] border border-white bg-white/60 px-2 py-1 text-[12px] text-accent backdrop-blur-sm transition-all duration-250 ease-out-soft hover:bg-white/80 active:scale-[0.97] disabled:cursor-not-allowed disabled:opacity-50 sm:px-2.5 sm:text-[13px]"
       >
-        {busy ? "监测中…" : "立即监测"}
+        {busy ? "监测中…" : (
+          <>
+            <span className="sm:hidden">监测</span>
+            <span className="hidden sm:inline">立即监测</span>
+          </>
+        )}
       </button>
     </div>
   );

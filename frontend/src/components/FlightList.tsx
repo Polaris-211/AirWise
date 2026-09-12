@@ -124,10 +124,10 @@ export default function FlightList({
             key={f.id}
             className="py-3.5 transition-colors duration-250 ease-out-soft hover:bg-black/[0.02]"
           >
-            <div className="flex items-center gap-4">
+            <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-4">
               {/* 标签 + 航司 + 航线 */}
               <div className="min-w-0 flex-1">
-                <p className="flex items-center gap-2 truncate">
+                <p className="flex flex-wrap items-center gap-2">
                   {f.is_transit ? (
                     <span className="shrink-0 rounded-full bg-[#fff4e5] px-2 py-0.5 text-[12px] font-medium text-[#b26a00]">
                       中转
@@ -137,7 +137,7 @@ export default function FlightList({
                       直达
                     </span>
                   )}
-                  <span className="truncate text-[14px] text-ink">
+                  <span className="min-w-0 text-[14px] text-ink">
                     {f.airline}
                   </span>
                   {/* 中转的航班号在下方分段展示，这里就不重复了 */}
@@ -153,7 +153,7 @@ export default function FlightList({
                   )}
                 </p>
                 {/* 窄屏下宁可换行，也不要把「经哪里中转」截断掉 */}
-                <p className="mt-0.5 text-[12px] text-subtle">
+                <p className="mt-0.5 text-[12px] leading-relaxed text-subtle">
                   {f.is_transit && f.transit_city
                     ? `${f.origin} →（${f.transit_city} 中转）→ ${f.destination}`
                     : `${airportLabel(f.dep_airport)} → ${airportLabel(f.arr_airport)}`}
@@ -165,38 +165,41 @@ export default function FlightList({
                 )}
               </div>
 
-              {/* 起飞时间 + 总时长 */}
-              <div className="shrink-0 text-right">
-                <span className="tnum text-[14px] text-subtle">
-                  {timeLabel}
-                </span>
-                {duration && (
-                  <span className="tnum mt-0.5 block text-[12px] text-subtle/80">
-                    共 {duration}
+              {/* 窄屏：时间与价格各占一行两端；宽屏还原为同一行三列 */}
+              <div className="flex items-end justify-between gap-3 sm:contents">
+                <div className="shrink-0 text-left sm:text-right">
+                  <span className="tnum text-[14px] text-subtle">
+                    {timeLabel}
                   </span>
-                )}
-              </div>
-
-              {/* 含税总价 + 明细 */}
-              <div className="shrink-0 text-right">
-                <div className="flex items-center justify-end gap-2">
-                  {total === lowest && (
-                    <span className="rounded-full bg-[#e8f8ec] px-2 py-0.5 text-[12px] font-medium text-[#1a8c3c]">
-                      最低
+                  {duration && (
+                    <span className="tnum mt-0.5 block text-[12px] text-subtle/80">
+                      共 {duration}
                     </span>
                   )}
-                  <span className="rounded-full bg-canvas px-1.5 py-0.5 text-[11px] text-subtle">
-                    含税
-                  </span>
-                  <span className="tnum text-[17px] font-semibold text-ink">
-                    ¥{total.toFixed(0)}
-                  </span>
                 </div>
-                {breakdown && (
-                  <p className="tnum mt-1 text-[12px] text-subtle">{breakdown}</p>
-                )}
+
+                <div className="shrink-0 text-right">
+                  <div className="flex flex-nowrap items-center justify-end gap-1.5 sm:gap-2">
+                    {total === lowest && (
+                      <span className="rounded-full bg-[#e8f8ec] px-2 py-0.5 text-[12px] font-medium text-[#1a8c3c]">
+                        最低
+                      </span>
+                    )}
+                    <span className="rounded-full bg-canvas px-1.5 py-0.5 text-[11px] text-subtle">
+                      含税
+                    </span>
+                    <span className="tnum text-[17px] font-semibold text-ink">
+                      ¥{total.toFixed(0)}
+                    </span>
+                  </div>
+                </div>
               </div>
             </div>
+            {breakdown && (
+              <p className="tnum mt-1.5 text-[11px] leading-relaxed text-subtle sm:text-right sm:text-[12px]">
+                {breakdown}
+              </p>
+            )}
 
             {/* 中转方案的两段明细 */}
             {segments && <SegmentRows segments={segments} />}

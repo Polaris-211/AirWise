@@ -182,7 +182,7 @@ export default function ReminderCenter() {
         <div
           role="dialog"
           aria-label="提醒中心"
-          className="animate-panel-in absolute right-0 top-[calc(100%+10px)] z-50 w-[min(360px,calc(100vw-32px))] rounded-[18px] border border-white/50 bg-white/95 shadow-[0_12px_40px_rgba(0,0,0,0.12)] backdrop-blur-xl backdrop-saturate-150"
+          className="animate-panel-in z-50 rounded-[18px] border border-white/50 bg-white/95 shadow-[0_12px_40px_rgba(0,0,0,0.12)] backdrop-blur-xl backdrop-saturate-150 max-sm:fixed max-sm:inset-x-4 max-sm:top-14 max-sm:w-auto sm:absolute sm:right-0 sm:top-[calc(100%+10px)] sm:w-[min(360px,calc(100vw-32px))]"
         >
           <div className="flex items-center justify-between px-4 pb-2 pt-3.5">
             <h2 className="text-[15px] font-semibold tracking-tighter text-[#1d1d1f]">

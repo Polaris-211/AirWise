@@ -9,6 +9,7 @@ import CardSkeleton from "./components/Skeleton";
 import Spinner from "./components/Spinner";
 import Toast from "./components/Toast";
 import TopBar from "./components/TopBar";
+import WelcomeBanner from "./components/WelcomeBanner";
 import { IconBulb, IconChart, IconSwap, IconWave } from "./components/icons";
 import { notifyRemindersChanged } from "./events";
 import { ctripOnewayUrl } from "./purchase";
@@ -47,7 +48,7 @@ const URGENCY_LABEL: Record<string, string> = {
 
 /** 卡片：纯白 + 大圆角 + 柔和阴影，hover 上浮；三列等高、内容底部对齐 */
 const CARD =
-  "flex h-full flex-col rounded-card bg-white p-8 shadow-card transition-all duration-250 ease-out-soft hover:-translate-y-0.5 hover:shadow-card-hover";
+  "flex h-full flex-col rounded-card bg-white p-6 shadow-card transition-all duration-250 ease-out-soft hover:-translate-y-0.5 hover:shadow-card-hover sm:p-8";
 
 /** 输入控件：半透明 + 模糊 + 白描边 + 内高光 + 柔和外阴影 */
 const CONTROL =
@@ -86,8 +87,8 @@ function CardHeader({
   trailing?: React.ReactNode;
 }) {
   return (
-    <div className="mb-6 flex items-start justify-between">
-      <div className="flex items-center gap-3">
+    <div className="mb-6 flex items-start justify-between gap-3">
+      <div className="flex min-w-0 items-center gap-3">
         <span className="flex h-10 w-10 items-center justify-center rounded-full bg-canvas text-subtle">
           {icon}
         </span>
@@ -242,7 +243,7 @@ export default function App() {
   const signalStyle = SIGNAL_STYLE[signal];
 
   return (
-    <div className="relative min-h-screen font-sans">
+    <div className="relative min-h-screen overflow-x-clip font-sans">
       {/* 固定光斑：给毛玻璃提供可透的色块，不随滚动 */}
       <div
         aria-hidden="true"
@@ -259,88 +260,94 @@ export default function App() {
       {/* 错误提示条，3 秒自动消失 */}
       {error && <Toast message={error} onClose={() => setError("")} />}
 
-      <main className="mx-auto max-w-[1100px] px-6 pb-24 pt-12">
+      <main className="mx-auto max-w-[1100px] px-4 pb-24 pt-16 sm:px-6 sm:pt-12">
         {/* Hero 区 */}
-        <section className="animate-rise-in py-12 text-center">
-          <h1 className="text-[32px] font-bold leading-tight tracking-tighter text-ink sm:text-[40px]">
+        <section className="animate-rise-in py-8 text-center sm:py-12">
+          <h1 className="text-[28px] font-bold leading-tight tracking-tighter text-ink sm:text-[40px]">
             智能机票价格监测
           </h1>
-          <p className="mt-4 text-[17px] text-subtle">
+          <p className="mt-4 text-[15px] text-subtle sm:text-[17px]">
             三个 Agent 协同采集、分析票价走势，告诉你什么时候该下单
           </p>
         </section>
 
-        {/* 查询卡片：居中，最大 720px */}
-        <section className="relative z-20 mx-auto mb-12 w-full max-w-[720px] animate-rise-in rounded-card border border-[rgba(255,255,255,0.85)] bg-white/40 p-8 shadow-card backdrop-blur-xl">
-          {/* 出发地 / 交换 / 目的地：窄屏上下排列，宽屏左右夹按钮 */}
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:gap-2">
-            <div className="min-w-0 flex-1">
-              <CitySearchInput
-                label="出发地"
-                value={form.origin}
-                onChange={(code) => updateForm("origin", code)}
-                onEnter={handleAnalyze}
-                placeholder="城市 / 拼音 / 三字码"
-              />
+        {/* 引导 + 查询卡片：居中，最大 720px */}
+        <div className="relative z-20 mx-auto mb-12 w-full max-w-[720px]">
+          <WelcomeBanner />
+          <section className="animate-rise-in rounded-card border border-[rgba(255,255,255,0.85)] bg-white/40 p-5 shadow-card backdrop-blur-xl sm:p-8">
+            {/* 出发地 / 交换 / 目的地：窄屏上下排列，宽屏左右夹按钮 */}
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:gap-2">
+              <div className="min-w-0 flex-1">
+                <CitySearchInput
+                  label="出发地"
+                  value={form.origin}
+                  onChange={(code) => updateForm("origin", code)}
+                  onEnter={handleAnalyze}
+                  placeholder="城市 / 拼音 / 三字码"
+                />
+              </div>
+              <button
+                type="button"
+                title="交换出发地/目的地"
+                aria-label="交换出发地/目的地"
+                onClick={swapEnds}
+                className="mx-auto flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-white bg-white/60 text-[#1d1d1f] shadow-[0_2px_8px_rgba(0,0,0,0.08)] backdrop-blur-sm transition-transform duration-250 ease-out sm:mb-1.5 sm:mx-0 sm:hover:rotate-180"
+              >
+                {/* 竖屏时箭头转成上下方向，对应堆叠的出发地 / 目的地 */}
+                <span className="inline-flex rotate-90 sm:rotate-0">
+                  <IconSwap />
+                </span>
+              </button>
+              <div className="min-w-0 flex-1">
+                <CitySearchInput
+                  label="目的地"
+                  value={form.destination}
+                  onChange={(code) => updateForm("destination", code)}
+                  onEnter={handleAnalyze}
+                  placeholder="城市 / 拼音 / 三字码"
+                />
+              </div>
             </div>
+
+            <div className="mt-5 grid gap-5 sm:grid-cols-2">
+              <DatePicker
+                label="航班日期"
+                value={form.flightDate}
+                onChange={(date) => updateForm("flightDate", date)}
+                onEnter={handleAnalyze}
+              />
+              <label className="block">
+                <span className={LABEL}>目标价（可留空）</span>
+                <input
+                  type="text"
+                  inputMode="numeric"
+                  className={`${CONTROL} tnum`}
+                  value={form.targetPrice}
+                  // 只保留数字，禁止其他字符
+                  onChange={(e) =>
+                    updateForm("targetPrice", e.target.value.replace(/[^\d]/g, ""))
+                  }
+                  onKeyDown={handleKeyDown}
+                  placeholder="800"
+                />
+              </label>
+            </div>
+
             <button
               type="button"
-              title="交换出发地/目的地"
-              aria-label="交换出发地/目的地"
-              onClick={swapEnds}
-              className="mx-auto flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-white bg-white/60 text-[#1d1d1f] shadow-[0_2px_8px_rgba(0,0,0,0.08)] backdrop-blur-sm transition-transform duration-250 ease-out hover:rotate-180 sm:mb-1.5 sm:mx-0"
+              onClick={handleAnalyze}
+              disabled={loading}
+              className={`mt-7 ${PRIMARY_BTN}`}
             >
-              <IconSwap />
+              {loading && <Spinner />}
+              {loading ? "分析中..." : "开始分析"}
             </button>
-            <div className="min-w-0 flex-1">
-              <CitySearchInput
-                label="目的地"
-                value={form.destination}
-                onChange={(code) => updateForm("destination", code)}
-                onEnter={handleAnalyze}
-                placeholder="城市 / 拼音 / 三字码"
-              />
-            </div>
-          </div>
-
-          <div className="mt-5 grid gap-5 sm:grid-cols-2">
-            <DatePicker
-              label="航班日期"
-              value={form.flightDate}
-              onChange={(date) => updateForm("flightDate", date)}
-              onEnter={handleAnalyze}
-            />
-            <label className="block">
-              <span className={LABEL}>目标价（可留空）</span>
-              <input
-                type="text"
-                inputMode="numeric"
-                className={`${CONTROL} tnum`}
-                value={form.targetPrice}
-                // 只保留数字，禁止其他字符
-                onChange={(e) =>
-                  updateForm("targetPrice", e.target.value.replace(/[^\d]/g, ""))
-                }
-                onKeyDown={handleKeyDown}
-                placeholder="800"
-              />
-            </label>
-          </div>
-
-          <button
-            type="button"
-            onClick={handleAnalyze}
-            disabled={loading}
-            className={`mt-7 ${PRIMARY_BTN}`}
-          >
-            {loading && <Spinner />}
-            {loading ? "分析中..." : "开始分析"}
-          </button>
-        </section>
+          </section>
+        </div>
 
         {/* 曲线卡片 */}
-        <section className="mb-12 animate-rise-in rounded-card bg-white p-8 shadow-card transition-shadow duration-250 ease-out-soft hover:shadow-card-hover">
-          <div className="mb-5 flex items-baseline justify-between">
+        <section className="mb-12 animate-rise-in rounded-card bg-white p-5 shadow-card transition-shadow duration-250 ease-out-soft hover:shadow-card-hover sm:p-8">
+          <div className="mb-5 flex flex-col gap-1 sm:flex-row sm:items-baseline sm:justify-between">
             <h2 className="text-[18px] font-semibold tracking-tighter text-ink">
               近 30 日最低价走势
             </h2>
@@ -354,8 +361,8 @@ export default function App() {
         </section>
 
         {/* 可选航班列表 */}
-        <section className="mb-12 animate-rise-in rounded-card bg-white p-8 shadow-card transition-shadow duration-250 ease-out-soft hover:shadow-card-hover">
-          <div className="mb-4 flex items-start justify-between gap-4">
+        <section className="mb-12 animate-rise-in rounded-card bg-white p-5 shadow-card transition-shadow duration-250 ease-out-soft hover:shadow-card-hover sm:p-8">
+          <div className="mb-4 flex flex-col items-start justify-between gap-3 sm:flex-row sm:items-start sm:gap-4">
             <div>
               <h2 className="text-[18px] font-semibold tracking-tighter text-ink">
                 可选航班
@@ -380,7 +387,7 @@ export default function App() {
         </section>
 
         {/* 三张 Agent 卡片：等宽三列，间距 24px，底部对齐 */}
-        <section className="grid items-stretch gap-6 md:grid-cols-3">
+        <section className="grid grid-cols-1 items-stretch gap-6 md:grid-cols-3">
           {/* Monitor */}
           <div className={CARD}>
             {loading ? (
@@ -548,7 +555,7 @@ export default function App() {
       </main>
 
       {/* 右下角数据来源标签 */}
-      <div className="pointer-events-none fixed bottom-4 right-4 z-30 rounded-full border border-hairline/60 bg-white/72 px-3.5 py-1.5 text-[12px] text-subtle shadow-bar backdrop-blur-xl">
+      <div className="pointer-events-none z-30 mx-auto mb-8 mt-6 max-w-[calc(100vw-2rem)] whitespace-nowrap rounded-full border border-hairline/60 bg-white/72 px-3 py-1.5 text-center text-[11px] text-subtle shadow-bar backdrop-blur-xl sm:fixed sm:bottom-4 sm:right-4 sm:mb-0 sm:mt-0 sm:px-3.5 sm:text-[12px]">
         数据来源：模拟数据（可替换真实 API）
       </div>
       </div>
