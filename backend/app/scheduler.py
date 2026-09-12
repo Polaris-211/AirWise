@@ -24,7 +24,7 @@ from .agents.monitor import MonitorAgent
 from .config import settings
 from .queries import daily_min_prices
 from .reminders import maybe_create_reminder
-from .sources.mock_source import MockPriceSource
+from .sources.factory import get_price_source
 
 logger = logging.getLogger("airwise.scheduler")
 
@@ -33,6 +33,12 @@ WATCHED_ROUTES: list[tuple[str, str]] = [
     ("BJS", "SHA"),
     ("BJS", "CTU"),
     ("SHA", "CAN"),
+    # 无直达：克拉玛依 ↔ 合肥联程（交换出发地后也能查到回程）
+    ("KRY", "HFE"),
+    ("HFE", "KRY"),
+    # 乌鲁木齐 ↔ 合肥直飞（含回程时刻）
+    ("URC", "HFE"),
+    ("HFE", "URC"),
 ]
 
 _JOB_ID = "monitor_watched_routes"
@@ -51,7 +57,7 @@ class MonitorScheduler:
 
     def __init__(self) -> None:
         self._scheduler = BackgroundScheduler()
-        self._agent = MonitorAgent(MockPriceSource())
+        self._agent = MonitorAgent(get_price_source())
         # 定时任务只走规则引擎，避免轮询时打 LLM
         self._analyst = AnalystAgent(llm_enabled=False)
         self._recent_runs: deque[dict] = deque(maxlen=_MAX_RECENT_RUNS)

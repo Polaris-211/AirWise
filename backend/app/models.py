@@ -1,6 +1,16 @@
 from datetime import date, datetime
 
-from sqlalchemy import Boolean, Date, DateTime, Float, Index, Integer, String, UniqueConstraint
+from sqlalchemy import (
+    JSON,
+    Boolean,
+    Date,
+    DateTime,
+    Float,
+    Index,
+    Integer,
+    String,
+    UniqueConstraint,
+)
 from sqlalchemy.orm import Mapped, mapped_column
 
 from .db import Base
@@ -30,6 +40,16 @@ class FlightPrice(Base):
     tax_fuel: Mapped[float | None] = mapped_column(Float, nullable=True)
     price_no_baggage: Mapped[float | None] = mapped_column(Float, nullable=True)
     price_with_baggage: Mapped[float | None] = mapped_column(Float, nullable=True)
+
+    # ── 中转信息 ──
+    # 直达航班 is_transit=False、transit_city=None、segments 只有一段，
+    # 老数据读出来是 NULL，接口层统一兜成 False，前端无需区分
+    is_transit: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
+    transit_city: Mapped[str | None] = mapped_column(String(8), nullable=True)
+    # 航段列表：[{flight_no, airline, dep_airport, arr_airport, dep_time, arr_time}, ...]
+    segments: Mapped[list[dict] | None] = mapped_column(JSON, nullable=True)
+    # 总时长（分钟）：中转 = 两段飞行 + 中转等待
+    total_duration_minutes: Mapped[int | None] = mapped_column(Integer, nullable=True)
 
     currency: Mapped[str] = mapped_column(String(8), nullable=False, default="CNY")
     source: Mapped[str] = mapped_column(String(32), nullable=False)

@@ -3,7 +3,7 @@ from datetime import date
 from ..queries import daily_min_prices
 from ..reminders import maybe_create_reminder
 from ..sources.base import PriceSource
-from ..sources.mock_source import MockPriceSource
+from ..sources.factory import get_price_source
 from .advisor import AdvisorAgent
 from .analyst import AnalystAgent
 from .monitor import MonitorAgent
@@ -18,7 +18,7 @@ class AgentOrchestrator:
         llm_enabled: bool = True,
         history_days: int = 30,
     ):
-        self.monitor = MonitorAgent(source or MockPriceSource())
+        self.monitor = MonitorAgent(source or get_price_source())
         self.analyst = AnalystAgent(llm_enabled=llm_enabled)
         self.advisor = AdvisorAgent(llm_enabled=llm_enabled)
         self.history_days = history_days

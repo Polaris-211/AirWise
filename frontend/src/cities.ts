@@ -19,8 +19,9 @@ export const CITIES: City[] = [
   { name: "广州", pinyin: "guangzhou", code: "CAN", airport: "白云国际机场", airportCode: "CAN" },
   { name: "深圳", pinyin: "shenzhen", code: "SZX", airport: "宝安国际机场", airportCode: "SZX" },
   { name: "成都", pinyin: "chengdu", code: "CTU", airport: "双流国际机场", airportCode: "CTU" },
+  { name: "成都天府", pinyin: "chengdutianfu", code: "TFU", airport: "天府国际机场", airportCode: "TFU" },
   { name: "杭州", pinyin: "hangzhou", code: "HGH", airport: "萧山国际机场", airportCode: "HGH" },
-  { name: "西安", pinyin: "xian", code: "SIA", airport: "咸阳国际机场", airportCode: "XIY" },
+  { name: "西安", pinyin: "xian sia", code: "XIY", airport: "咸阳国际机场", airportCode: "XIY" },
   { name: "重庆", pinyin: "chongqing", code: "CKG", airport: "江北国际机场", airportCode: "CKG" },
   { name: "昆明", pinyin: "kunming", code: "KMG", airport: "长水国际机场", airportCode: "KMG" },
   { name: "厦门", pinyin: "xiamen", code: "XMN", airport: "高崎国际机场", airportCode: "XMN" },
@@ -32,7 +33,7 @@ export const CITIES: City[] = [
   { name: "天津", pinyin: "tianjin", code: "TSN", airport: "滨海国际机场", airportCode: "TSN" },
   { name: "哈尔滨", pinyin: "haerbin", code: "HRB", airport: "太平国际机场", airportCode: "HRB" },
   { name: "三亚", pinyin: "sanya", code: "SYX", airport: "凤凰国际机场", airportCode: "SYX" },
-  { name: "乌鲁木齐", pinyin: "wulumuqi", code: "URC", airport: "地窝堡国际机场", airportCode: "URC" },
+  { name: "乌鲁木齐", pinyin: "wulumuqi", code: "URC", airport: "天山国际机场", airportCode: "URC" },
   { name: "沈阳", pinyin: "shenyang", code: "SHE", airport: "桃仙国际机场", airportCode: "SHE" },
   { name: "大连", pinyin: "dalian", code: "DLC", airport: "周水子国际机场", airportCode: "DLC" },
   { name: "福州", pinyin: "fuzhou", code: "FOC", airport: "长乐国际机场", airportCode: "FOC" },
@@ -44,7 +45,12 @@ export const CITIES: City[] = [
   { name: "合肥", pinyin: "hefei", code: "HFE", airport: "新桥国际机场", airportCode: "HFE" },
   { name: "济南", pinyin: "jinan", code: "TNA", airport: "遥墙国际机场", airportCode: "TNA" },
   { name: "拉萨", pinyin: "lasa", code: "LXA", airport: "贡嘎国际机场", airportCode: "LXA" },
+  // 克拉玛依无直达合肥的航线，用于演示中转方案
+  { name: "克拉玛依", pinyin: "kelamayi", code: "KRY", airport: "古海机场", airportCode: "KRY" },
 ];
+
+/** 旧城市码 → 现行查询码 */
+const CITY_ALIASES: Record<string, string> = { SIA: "XIY" };
 
 /**
  * 按关键词匹配城市：中文名、拼音、三字码、机场名、机场代码都可命中。
@@ -77,6 +83,7 @@ export function searchCities(keyword: string, limit = 8): City[] {
 
 /** 按三字码找城市，用于显示中文名 */
 export function findCityByCode(code: string): City | undefined {
-  const c = code.trim().toUpperCase();
-  return CITIES.find((city) => city.code === c);
+  const raw = code.trim().toUpperCase();
+  const c = CITY_ALIASES[raw] ?? raw;
+  return CITIES.find((city) => city.code === c || city.airportCode === c);
 }

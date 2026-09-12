@@ -9,7 +9,7 @@ import CardSkeleton from "./components/Skeleton";
 import Spinner from "./components/Spinner";
 import Toast from "./components/Toast";
 import TopBar from "./components/TopBar";
-import { IconBulb, IconChart, IconWave } from "./components/icons";
+import { IconBulb, IconChart, IconSwap, IconWave } from "./components/icons";
 import { notifyRemindersChanged } from "./events";
 import { ctripOnewayUrl } from "./purchase";
 import { findCityByCode } from "./cities";
@@ -146,6 +146,15 @@ export default function App() {
     setForm((prev) => ({ ...prev, [key]: value }));
   };
 
+  /** 交换出发地 / 目的地 */
+  const swapEnds = () => {
+    setForm((prev) => ({
+      ...prev,
+      origin: prev.destination,
+      destination: prev.origin,
+    }));
+  };
+
   /** 拉取历史曲线 */
   const fetchHistory = async (origin: string, destination: string) => {
     const res = await fetch(
@@ -263,23 +272,38 @@ export default function App() {
 
         {/* 查询卡片：居中，最大 720px */}
         <section className="relative z-20 mx-auto mb-12 w-full max-w-[720px] animate-rise-in rounded-card border border-[rgba(255,255,255,0.85)] bg-white/40 p-8 shadow-card backdrop-blur-xl">
-          <div className="grid gap-5 sm:grid-cols-2">
-            {/* 搜索式城市选择：中文 / 拼音 / 三字码都能匹配 */}
-            <CitySearchInput
-              label="出发地"
-              value={form.origin}
-              onChange={(code) => updateForm("origin", code)}
-              onEnter={handleAnalyze}
-              placeholder="城市 / 拼音 / 三字码"
-            />
-            <CitySearchInput
-              label="目的地"
-              value={form.destination}
-              onChange={(code) => updateForm("destination", code)}
-              onEnter={handleAnalyze}
-              placeholder="城市 / 拼音 / 三字码"
-            />
+          {/* 出发地 / 交换 / 目的地：窄屏上下排列，宽屏左右夹按钮 */}
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:gap-2">
+            <div className="min-w-0 flex-1">
+              <CitySearchInput
+                label="出发地"
+                value={form.origin}
+                onChange={(code) => updateForm("origin", code)}
+                onEnter={handleAnalyze}
+                placeholder="城市 / 拼音 / 三字码"
+              />
+            </div>
+            <button
+              type="button"
+              title="交换出发地/目的地"
+              aria-label="交换出发地/目的地"
+              onClick={swapEnds}
+              className="mx-auto flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-white bg-white/60 text-[#1d1d1f] shadow-[0_2px_8px_rgba(0,0,0,0.08)] backdrop-blur-sm transition-transform duration-250 ease-out hover:rotate-180 sm:mb-1.5 sm:mx-0"
+            >
+              <IconSwap />
+            </button>
+            <div className="min-w-0 flex-1">
+              <CitySearchInput
+                label="目的地"
+                value={form.destination}
+                onChange={(code) => updateForm("destination", code)}
+                onEnter={handleAnalyze}
+                placeholder="城市 / 拼音 / 三字码"
+              />
+            </div>
+          </div>
 
+          <div className="mt-5 grid gap-5 sm:grid-cols-2">
             <DatePicker
               label="航班日期"
               value={form.flightDate}

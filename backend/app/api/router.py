@@ -2,15 +2,12 @@ from datetime import date
 
 from fastapi import APIRouter, HTTPException, Query
 from pydantic import BaseModel, Field
-from sqlalchemy import select
 
 from ..agents.advisor import AdvisorAgent
 from ..agents.analyst import AnalystAgent
 from ..agents.orchestrator import AgentOrchestrator
 from ..backfill import HISTORY_DAYS, backfill_routes
-from ..db import SessionLocal
-from ..models import FlightPrice
-from ..queries import daily_min_prices
+from ..queries import daily_min_prices, list_route_prices
 from ..reminders import (
     list_reminders,
     mark_all_read,
@@ -77,45 +74,7 @@ def list_prices(
     flight_date: date = Query(..., description="航班日期 YYYY-MM-DD"),
 ):
     """查询某航线某日已入库的价格记录。"""
-    origin = origin.upper()
-    destination = destination.upper()
-    db = SessionLocal()
-    try:
-        stmt = (
-            select(FlightPrice)
-            .where(
-                FlightPrice.origin == origin,
-                FlightPrice.destination == destination,
-                FlightPrice.flight_date == flight_date,
-            )
-            .order_by(FlightPrice.price.asc())
-        )
-        rows = db.scalars(stmt).all()
-        return [
-            {
-                "id": row.id,
-                "origin": row.origin,
-                "destination": row.destination,
-                "flight_date": row.flight_date.isoformat(),
-                "flight_no": row.flight_no,
-                "airline": row.airline,
-                "depart_time": row.depart_time,
-                "dep_airport": row.dep_airport,
-                "arr_airport": row.arr_airport,
-                "price": row.price,
-                "base_price": row.base_price,
-                "tax_airport": row.tax_airport,
-                "tax_fuel": row.tax_fuel,
-                "price_no_baggage": row.price_no_baggage,
-                "price_with_baggage": row.price_with_baggage,
-                "currency": row.currency,
-                "source": row.source,
-                "captured_at": row.captured_at.isoformat(timespec="seconds"),
-            }
-            for row in rows
-        ]
-    finally:
-        db.close()
+    return list_route_prices(origin, destination, flight_date)
 
 
 @api_router.get("/api/routes/{origin}/{destination}/history")

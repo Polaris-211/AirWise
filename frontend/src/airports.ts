@@ -11,6 +11,10 @@ export const AIRPORT_NAMES: Record<string, string> = {
   SZX: "宝安国际",
   CTU: "双流国际",
   TFU: "天府国际",
+  XIY: "咸阳国际",
+  URC: "天山国际",
+  KRY: "古海",
+  HFE: "新桥国际",
 };
 
 /** 拼成「三字码 + 中文名」的展示文案 */

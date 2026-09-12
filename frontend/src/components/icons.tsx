@@ -65,3 +65,26 @@ export function IconChevronRight({ className = "h-4 w-4" }: { className?: string
     </svg>
   );
 }
+
+/** 交换出发地 / 目的地：环形双箭头（上弧向右、下弧向左，首尾相接） */
+export function IconSwap({ className = "h-[17px] w-[17px]" }: { className?: string }) {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="#1d1d1f"
+      strokeWidth={1.8}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className={className}
+      aria-hidden="true"
+    >
+      {/* 上弧：左侧出发，经顶部弯向右，箭头落在右上 */}
+      <path d="M4.4 13.2a7.6 7.6 0 0 1 12.6-5.6" />
+      <path d="M17 4.6v3.6h-3.6" />
+      {/* 下弧：右侧出发，经底部弯向左，箭头落在左下 */}
+      <path d="M19.6 10.8a7.6 7.6 0 0 1-12.6 5.6" />
+      <path d="M7 19.4v-3.6h3.6" />
+    </svg>
+  );
+}

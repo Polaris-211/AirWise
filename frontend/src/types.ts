@@ -61,6 +61,18 @@ export interface PriceHistoryPoint {
   min_price: number;
 }
 
+/** 行程中的一段航班：直达一段，中转两段 */
+export interface FlightSegment {
+  flight_no: string;
+  airline: string;
+  dep_airport: string | null;
+  arr_airport: string | null;
+  dep_time: string | null;
+  arr_time: string | null;
+  /** 该航段是否提供餐食 */
+  has_meal?: boolean;
+}
+
 /** GET /api/routes/{o}/{d}/prices 单条航班报价 */
 export interface FlightPriceRow {
   id: number;
@@ -85,6 +97,14 @@ export interface FlightPriceRow {
   price_no_baggage: number | null;
   /** 不含行李总价 + 行李费 */
   price_with_baggage: number | null;
+  /** 是否中转（无直达航线时由数据源改出中转方案） */
+  is_transit: boolean;
+  /** 中转城市三字码，直达为 null */
+  transit_city: string | null;
+  /** 航段列表，老数据可能为 null */
+  segments: FlightSegment[] | null;
+  /** 总时长（分钟）：中转 = 两段飞行 + 中转等待 */
+  total_duration_minutes: number | null;
   currency: string;
   source: string;
   captured_at: string;

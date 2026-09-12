@@ -46,6 +46,11 @@ _LATE_COLUMNS = {
     "tax_fuel": "FLOAT",
     "price_no_baggage": "FLOAT",
     "price_with_baggage": "FLOAT",
+    # 中转相关：SQLite 没有原生 JSON 列，用 TEXT 存序列化后的航段列表
+    "is_transit": "BOOLEAN",
+    "transit_city": "VARCHAR(8)",
+    "segments": "TEXT",
+    "total_duration_minutes": "INTEGER",
 }
 
 

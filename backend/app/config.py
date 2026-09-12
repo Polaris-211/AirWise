@@ -15,6 +15,9 @@ class Settings(BaseSettings):
     # 自动监测间隔（分钟）。调试时可在 .env 里改成 1 便于观察
     monitor_interval_minutes: int = 30
 
+    # 票价数据源：mock=内置模拟（默认，演示稳定）；ctrip=携程低价日历（仅演示）
+    data_source: str = "mock"
+
     class Config:
         env_file = ".env"
         extra = "ignore"
