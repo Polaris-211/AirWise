@@ -1,6 +1,6 @@
 from datetime import date
 
-from fastapi import APIRouter, Query
+from fastapi import APIRouter, HTTPException, Query
 from pydantic import BaseModel, Field
 from sqlalchemy import select
 
@@ -11,6 +11,12 @@ from ..backfill import HISTORY_DAYS, backfill_routes
 from ..db import SessionLocal
 from ..models import FlightPrice
 from ..queries import daily_min_prices
+from ..reminders import (
+    list_reminders,
+    mark_all_read,
+    mark_read,
+    unread_count,
+)
 from ..scheduler import monitor_scheduler
 
 api_router = APIRouter()
@@ -161,3 +167,30 @@ def scheduler_run_now():
     """立即对全部关注航线手动触发一次监测。"""
     run = monitor_scheduler.run_all(trigger="manual")
     return {"run": run, "status": monitor_scheduler.status()}
+
+
+@api_router.get("/api/reminders")
+def get_reminders(limit: int = Query(20, ge=1, le=100)):
+    """提醒列表，按时间倒序。"""
+    return list_reminders(limit)
+
+
+@api_router.get("/api/reminders/unread-count")
+def get_unread_count():
+    """未读提醒条数。"""
+    return {"count": unread_count()}
+
+
+@api_router.post("/api/reminders/{reminder_id}/read")
+def read_reminder(reminder_id: int):
+    """标记单条提醒已读。"""
+    row = mark_read(reminder_id)
+    if row is None:
+        raise HTTPException(status_code=404, detail="提醒不存在")
+    return row
+
+
+@api_router.post("/api/reminders/read-all")
+def read_all_reminders():
+    """全部标为已读。"""
+    return {"updated": mark_all_read()}

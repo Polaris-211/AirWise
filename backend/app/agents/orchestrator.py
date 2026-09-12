@@ -1,6 +1,7 @@
 from datetime import date
 
 from ..queries import daily_min_prices
+from ..reminders import maybe_create_reminder
 from ..sources.base import PriceSource
 from ..sources.mock_source import MockPriceSource
 from .advisor import AdvisorAgent
@@ -37,8 +38,18 @@ class AgentOrchestrator:
             analyst_result,
             {"target_price": target_price, "trip_date": flight_date.isoformat()},
         )
+        # 低点 / 可考虑时落一条提醒，同航线同日期不会重复
+        reminder = maybe_create_reminder(
+            origin=origin,
+            destination=destination,
+            flight_date=flight_date,
+            price=analyst_result.get("current"),
+            signal=analyst_result.get("signal", "wait"),
+            target_price=target_price,
+        )
         return {
             "monitor": monitor_result,
             "analyst": analyst_result,
             "advisor": advisor_result,
+            "reminder": reminder,
         }

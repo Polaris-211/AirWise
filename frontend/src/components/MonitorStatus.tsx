@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
+import { notifyRemindersChanged } from "../events";
 import type { SchedulerStatus } from "../types";
 
 /** 状态轮询间隔：30 秒 */
@@ -56,6 +57,8 @@ export default function MonitorStatus() {
       if (!res.ok) throw new Error("触发失败");
       const data: { status: SchedulerStatus } = await res.json();
       if (aliveRef.current) setStatus(data.status);
+      // 定时/手动监测可能刚写入提醒，立刻刷新铃铛（允许弹系统通知）
+      notifyRemindersChanged(false);
     } catch {
       if (aliveRef.current) await fetchStatus();
     } finally {

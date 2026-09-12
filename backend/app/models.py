@@ -1,6 +1,6 @@
 from datetime import date, datetime
 
-from sqlalchemy import Date, DateTime, Float, Index, Integer, String
+from sqlalchemy import Boolean, Date, DateTime, Float, Index, Integer, String, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column
 
 from .db import Base
@@ -37,4 +37,31 @@ class FlightPrice(Base):
 
     __table_args__ = (
         Index("ix_flight_prices_route_date", "origin", "destination", "flight_date"),
+    )
+
+
+class Reminder(Base):
+    """低价提醒：Analyst 给出 buy_now / consider 时写入，同航线同日期只留一条。"""
+
+    __tablename__ = "reminders"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    origin: Mapped[str] = mapped_column(String(8), nullable=False)
+    destination: Mapped[str] = mapped_column(String(8), nullable=False)
+    flight_date: Mapped[date] = mapped_column(Date, nullable=False)
+    price: Mapped[float] = mapped_column(Float, nullable=False)
+    target_price: Mapped[float | None] = mapped_column(Float, nullable=True)
+    signal: Mapped[str] = mapped_column(String(16), nullable=False)
+    message: Mapped[str] = mapped_column(String(256), nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime, nullable=False)
+    is_read: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
+
+    __table_args__ = (
+        UniqueConstraint(
+            "origin",
+            "destination",
+            "flight_date",
+            name="uq_reminders_route_date",
+        ),
+        Index("ix_reminders_created_at", "created_at"),
     )

@@ -1,4 +1,5 @@
 import MonitorStatus from "./MonitorStatus";
+import ReminderCenter from "./ReminderCenter";
 
 /** 固定顶栏：白色半透明 + 毛玻璃 + 1px 极细底边 */
 export default function TopBar() {
@@ -8,8 +9,11 @@ export default function TopBar() {
         <span className="text-[20px] font-bold tracking-tighter text-ink">
           AirWise
         </span>
-        {/* 右侧与品牌名左右呼应的自动监测状态区 */}
-        <MonitorStatus />
+        {/* 右侧：监测状态 + 提醒铃铛 */}
+        <div className="flex items-center gap-2 sm:gap-3">
+          <MonitorStatus />
+          <ReminderCenter />
+        </div>
       </div>
     </header>
   );

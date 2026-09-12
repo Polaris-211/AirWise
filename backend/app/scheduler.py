@@ -19,8 +19,11 @@ from datetime import date, datetime, timedelta
 
 from apscheduler.schedulers.background import BackgroundScheduler
 
+from .agents.analyst import AnalystAgent
 from .agents.monitor import MonitorAgent
 from .config import settings
+from .queries import daily_min_prices
+from .reminders import maybe_create_reminder
 from .sources.mock_source import MockPriceSource
 
 logger = logging.getLogger("airwise.scheduler")
@@ -49,6 +52,8 @@ class MonitorScheduler:
     def __init__(self) -> None:
         self._scheduler = BackgroundScheduler()
         self._agent = MonitorAgent(MockPriceSource())
+        # 定时任务只走规则引擎，避免轮询时打 LLM
+        self._analyst = AnalystAgent(llm_enabled=False)
         self._recent_runs: deque[dict] = deque(maxlen=_MAX_RECENT_RUNS)
         self._total_runs = 0
         self._last_run: dict | None = None
@@ -133,6 +138,7 @@ class MonitorScheduler:
             flight_date = _watched_flight_date()
             routes: list[dict] = []
             total_inserted = 0
+            reminders_created = 0
 
             for origin, destination in WATCHED_ROUTES:
                 route = f"{origin}-{destination}"
@@ -140,10 +146,28 @@ class MonitorScheduler:
                     result = self._agent.run(origin, destination, flight_date)
                     inserted = int(result.get("inserted", 0))
                     total_inserted += inserted
-                    routes.append({"route": route, "inserted": inserted, "error": None})
+                    # 采集后立刻判断水位，低点则写入提醒
+                    reminder = self._maybe_remind(origin, destination, flight_date)
+                    if reminder:
+                        reminders_created += 1
+                    routes.append(
+                        {
+                            "route": route,
+                            "inserted": inserted,
+                            "error": None,
+                            "reminder_created": bool(reminder),
+                        }
+                    )
                 except Exception as exc:  # noqa: BLE001 - 单条航线失败不影响其他航线
                     logger.exception("航线 %s 监测失败", route)
-                    routes.append({"route": route, "inserted": 0, "error": str(exc)})
+                    routes.append(
+                        {
+                            "route": route,
+                            "inserted": 0,
+                            "error": str(exc),
+                            "reminder_created": False,
+                        }
+                    )
 
             finished = datetime.now()
             record = {
@@ -152,18 +176,35 @@ class MonitorScheduler:
                 "flight_date": flight_date.isoformat(),
                 "routes": routes,
                 "inserted": total_inserted,
+                "reminders_created": reminders_created,
                 "duration_ms": int((finished - started).total_seconds() * 1000),
             }
             self._recent_runs.append(record)
             self._total_runs += 1
             self._last_run = record
             logger.info(
-                "监测完成（%s）：%d 条航线，共入库 %d 条",
+                "监测完成（%s）：%d 条航线，共入库 %d 条，新增提醒 %d 条",
                 trigger,
                 len(routes),
                 total_inserted,
+                reminders_created,
             )
             return record
+
+    def _maybe_remind(
+        self, origin: str, destination: str, flight_date: date
+    ) -> dict | None:
+        """用近 30 日最低价跑 Analyst，低点则落提醒。"""
+        prices = daily_min_prices(origin, destination, 30)
+        analyst_result = self._analyst.analyze(prices)
+        return maybe_create_reminder(
+            origin=origin,
+            destination=destination,
+            flight_date=flight_date,
+            price=analyst_result.get("current"),
+            signal=analyst_result.get("signal", "wait"),
+            target_price=None,
+        )
 
     # ---------- 查询 ----------
 

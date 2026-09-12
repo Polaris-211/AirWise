@@ -32,11 +32,27 @@ export interface AdvisorResult {
   llm_used: boolean;
 }
 
+/** GET /api/reminders 单条低价提醒 */
+export interface ReminderItem {
+  id: number;
+  origin: string;
+  destination: string;
+  flight_date: string;
+  price: number;
+  target_price: number | null;
+  signal: Signal;
+  message: string;
+  created_at: string;
+  is_read: boolean;
+}
+
 /** POST /api/agents/run 完整响应 */
 export interface AgentsRunResponse {
   monitor: MonitorResult;
   analyst: AnalystResult;
   advisor: AdvisorResult;
+  /** 本次新写入的提醒；同航线同日期已存在或非低点时为 null */
+  reminder: ReminderItem | null;
 }
 
 /** 历史每日最低价 */
@@ -79,6 +95,7 @@ export interface SchedulerRouteResult {
   route: string;
   inserted: number;
   error: string | null;
+  reminder_created?: boolean;
 }
 
 /** 一次自动监测的执行记录 */
@@ -88,6 +105,7 @@ export interface SchedulerRun {
   flight_date: string;
   routes: SchedulerRouteResult[];
   inserted: number;
+  reminders_created?: number;
   duration_ms: number;
 }
 

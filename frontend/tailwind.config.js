@@ -58,6 +58,11 @@ export default {
           "0%": { opacity: "0", transform: "translateY(-12px)" },
           "100%": { opacity: "1", transform: "translateY(0)" },
         },
+        // 提醒面板从铃铛下方滑入
+        "panel-in": {
+          "0%": { opacity: "0", transform: "translateY(-8px)" },
+          "100%": { opacity: "1", transform: "translateY(0)" },
+        },
         // 状态点呼吸：极轻微的明暗起伏
         breathe: {
           "0%, 100%": { opacity: "1" },
@@ -73,6 +78,8 @@ export default {
         "rise-in": "rise-in 250ms cubic-bezier(0.25, 0.46, 0.45, 0.94) both",
         "slide-down":
           "slide-down 250ms cubic-bezier(0.25, 0.46, 0.45, 0.94) both",
+        "panel-in":
+          "panel-in 250ms cubic-bezier(0.25, 0.46, 0.45, 0.94) both",
         breathe: "breathe 2.6s cubic-bezier(0.4, 0, 0.6, 1) infinite",
         halo: "halo 2.6s cubic-bezier(0.25, 0.46, 0.45, 0.94) infinite",
       },

@@ -9,6 +9,8 @@ import Spinner from "./components/Spinner";
 import Toast from "./components/Toast";
 import TopBar from "./components/TopBar";
 import { IconBulb, IconChart, IconWave } from "./components/icons";
+import { notifyRemindersChanged } from "./events";
+import { ctripOnewayUrl } from "./purchase";
 import { findCityByCode } from "./cities";
 import type {
   AdvisorResult,
@@ -187,6 +189,8 @@ export default function App() {
           minute: "2-digit",
         })
       );
+      // 分析可能刚写入提醒，刷新铃铛；用户自己点的，不弹系统通知
+      notifyRemindersChanged(true);
     } catch (e) {
       // fetch 网络层失败会抛 TypeError，说明后端没起来
       setError(
@@ -450,6 +454,18 @@ export default function App() {
                       建议动作：{advisor.suggested_action}
                       {advisor.llm_used && " · LLM 增强"}
                     </p>
+                    <a
+                      href={ctripOnewayUrl(
+                        queried?.origin ?? form.origin,
+                        queried?.destination ?? form.destination,
+                        queried?.date ?? form.flightDate
+                      )}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="mt-6 flex w-full items-center justify-center rounded-button bg-accent px-6 py-3 text-[16px] font-medium text-white transition-all duration-250 ease-out-soft hover:bg-accent-dark hover:shadow-[0_4px_16px_rgba(0,113,227,0.30)]"
+                    >
+                      去购买
+                    </a>
                   </div>
                 ) : (
                   <Placeholder />
