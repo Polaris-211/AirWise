@@ -182,35 +182,38 @@ export default function ReminderCenter() {
         <div
           role="dialog"
           aria-label="提醒中心"
-          className="animate-panel-in absolute right-0 top-[calc(100%+10px)] z-50 w-[min(360px,calc(100vw-32px))] overflow-hidden rounded-[18px] border border-hairline/60 bg-white/78 shadow-card backdrop-blur-xl backdrop-saturate-150"
+          className="animate-panel-in absolute right-0 top-[calc(100%+10px)] z-50 w-[min(360px,calc(100vw-32px))] rounded-[18px] border border-white/50 bg-white/95 shadow-[0_12px_40px_rgba(0,0,0,0.12)] backdrop-blur-xl backdrop-saturate-150"
         >
           <div className="flex items-center justify-between px-4 pb-2 pt-3.5">
-            <h2 className="text-[15px] font-semibold tracking-tighter text-ink">
+            <h2 className="text-[15px] font-semibold tracking-tighter text-[#1d1d1f]">
               提醒
             </h2>
             {notifyState === "default" && (
               <button
                 type="button"
                 onClick={handleEnableNotify}
-                className="text-[12px] text-accent transition-opacity duration-250 ease-out-soft hover:opacity-70"
+                className="text-[12px] text-[#0071e3] transition-opacity duration-250 ease-out-soft hover:opacity-70"
               >
                 开启系统通知
               </button>
             )}
             {notifyState === "granted" && (
-              <span className="text-[12px] text-subtle">已开启通知</span>
+              <span className="text-[12px] text-[#86868b]">已开启通知</span>
             )}
           </div>
 
           <div className="max-h-[360px] overflow-y-auto">
             {items.length === 0 ? (
-              <p className="px-4 py-10 text-center text-[14px] text-subtle">
+              <p className="px-4 py-10 text-center text-[14px] text-[#86868b]">
                 暂无提醒
               </p>
             ) : (
-              <ul>
-                {items.map((item) => (
-                  <li key={item.id} className="border-t border-hairline/50">
+              <ul className="px-2">
+                {items.map((item, idx) => (
+                  <li
+                    key={item.id}
+                    className={idx === 0 ? "" : "border-t border-hairline/70"}
+                  >
                     <div
                       role="button"
                       tabIndex={0}
@@ -222,7 +225,7 @@ export default function ReminderCenter() {
                           void handleMarkOne(item.id);
                         }
                       }}
-                      className="flex cursor-pointer gap-2.5 px-4 py-3 transition-colors duration-250 ease-out-soft hover:bg-white/50"
+                      className="flex cursor-pointer gap-2.5 rounded-[12px] px-2.5 py-3.5 transition-colors duration-250 ease-out-soft hover:bg-[#f5f5f7]"
                     >
                       <span
                         className={`mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full ${
@@ -236,13 +239,13 @@ export default function ReminderCenter() {
                       <div className="min-w-0 flex-1">
                         <p
                           className={`text-[13px] leading-relaxed ${
-                            item.is_read ? "text-subtle" : "text-ink"
+                            item.is_read ? "text-[#86868b]" : "text-[#1d1d1f]"
                           }`}
                         >
                           {item.message}
                         </p>
                         <div className="mt-1.5 flex items-center justify-between gap-3">
-                          <span className="tnum text-[12px] text-subtle">
+                          <span className="tnum text-[12px] text-[#86868b]">
                             {formatRelativeTime(item.created_at)}
                           </span>
                           <a
@@ -257,7 +260,7 @@ export default function ReminderCenter() {
                               e.stopPropagation();
                               if (!item.is_read) void handleMarkOne(item.id);
                             }}
-                            className="shrink-0 text-[12px] text-accent transition-opacity duration-250 ease-out-soft hover:opacity-70"
+                            className="shrink-0 text-[12px] text-[#0071e3] transition-opacity duration-250 ease-out-soft hover:opacity-70"
                           >
                             去购买
                           </a>
@@ -270,12 +273,12 @@ export default function ReminderCenter() {
             )}
           </div>
 
-          <div className="border-t border-hairline/60 px-4 py-2.5">
+          <div className="border-t border-hairline px-4 py-3">
             <button
               type="button"
               onClick={handleMarkAll}
               disabled={unread === 0 || busyAll}
-              className="w-full rounded-[10px] py-1.5 text-[13px] text-accent transition-all duration-250 ease-out-soft hover:bg-canvas disabled:cursor-not-allowed disabled:text-subtle disabled:hover:bg-transparent"
+              className="w-full rounded-[10px] py-1.5 text-[13px] text-[#0071e3] transition-all duration-250 ease-out-soft hover:bg-[#f5f5f7] disabled:cursor-not-allowed disabled:text-[#86868b] disabled:hover:bg-transparent"
             >
               全部标为已读
             </button>

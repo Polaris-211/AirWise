@@ -39,6 +39,8 @@ export default {
         card: "0 2px 24px rgba(0,0,0,0.06)",
         "card-hover": "0 6px 32px rgba(0,0,0,0.10)",
         bar: "0 1px 0 rgba(0,0,0,0.04)",
+        panel: "0 12px 40px rgba(0,0,0,0.12)",
+        glow: "0 0 0 3px rgba(0,113,227,0.18)",
       },
       transitionTimingFunction: {
         // key 会自动带上 ease- 前缀，这里写 out-soft 才生成 .ease-out-soft

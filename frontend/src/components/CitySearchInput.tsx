@@ -97,7 +97,7 @@ export default function CitySearchInput({
     <div className="relative" ref={wrapRef}>
       <span className="mb-2 block text-[13px] text-subtle">{label}</span>
       <input
-        className="w-full rounded-control border border-transparent bg-canvas px-3.5 py-2.5 text-[15px] text-ink outline-none transition-all duration-250 ease-out-soft placeholder:text-subtle/70 focus:border-accent focus:bg-white"
+        className="w-full rounded-control border border-[rgba(255,255,255,0.85)] bg-white/55 px-3.5 py-2.5 text-[15px] text-[#1d1d1f] outline-none backdrop-blur-md shadow-[inset_0_1px_0_rgba(255,255,255,0.9),0_2px_8px_rgba(0,0,0,0.06)] transition-all duration-250 ease-out-soft placeholder:text-[#86868b] focus:border-[#0071e3] focus:shadow-[inset_0_1px_0_rgba(255,255,255,0.9),0_0_0_3px_rgba(0,113,227,0.15)]"
         value={keyword}
         placeholder={placeholder}
         autoComplete="off"
@@ -117,7 +117,7 @@ export default function CitySearchInput({
       {open && matches.length > 0 && (
         <ul
           ref={listRef}
-          className="animate-rise-in absolute left-0 right-0 top-full z-50 mt-2 max-h-72 overflow-y-auto rounded-2xl border border-white/40 bg-white/70 shadow-[0_8px_32px_rgba(0,0,0,0.08)] backdrop-blur-xl backdrop-saturate-150"
+          className="animate-rise-in absolute left-0 right-0 top-full z-50 mt-2 max-h-72 overflow-y-auto rounded-[16px] border border-white/50 bg-white/95 shadow-[0_12px_40px_rgba(0,0,0,0.12)] backdrop-blur-xl backdrop-saturate-150"
         >
           {matches.map((city, idx) => (
             <li key={city.code}>

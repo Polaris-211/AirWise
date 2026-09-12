@@ -47,3 +47,21 @@ export function IconBell({ className = "h-5 w-5" }: { className?: string }) {
     </svg>
   );
 }
+
+/** 日期选择：上一月 */
+export function IconChevronLeft({ className = "h-4 w-4" }: { className?: string }) {
+  return (
+    <svg {...base} className={className}>
+      <path d="M15 6l-6 6 6 6" />
+    </svg>
+  );
+}
+
+/** 日期选择：下一月 */
+export function IconChevronRight({ className = "h-4 w-4" }: { className?: string }) {
+  return (
+    <svg {...base} className={className}>
+      <path d="M9 6l6 6-6 6" />
+    </svg>
+  );
+}

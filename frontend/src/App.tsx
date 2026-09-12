@@ -3,6 +3,7 @@ import PriceChart from "./PriceChart";
 import AnimatedNumber from "./components/AnimatedNumber";
 import BaggageToggle from "./components/BaggageToggle";
 import CitySearchInput from "./components/CitySearchInput";
+import DatePicker from "./components/DatePicker";
 import FlightList from "./components/FlightList";
 import CardSkeleton from "./components/Skeleton";
 import Spinner from "./components/Spinner";
@@ -44,15 +45,33 @@ const URGENCY_LABEL: Record<string, string> = {
   low: "不急",
 };
 
-/** 卡片：纯白 + 大圆角 + 柔和阴影，hover 上浮 */
+/** 卡片：纯白 + 大圆角 + 柔和阴影，hover 上浮；三列等高、内容底部对齐 */
 const CARD =
-  "rounded-card bg-white p-8 shadow-card transition-all duration-250 ease-out-soft hover:-translate-y-0.5 hover:shadow-card-hover";
+  "flex h-full flex-col rounded-card bg-white p-8 shadow-card transition-all duration-250 ease-out-soft hover:-translate-y-0.5 hover:shadow-card-hover";
 
-/** 输入控件：浅灰底、无边框，聚焦时描边变蓝 */
+/** 输入控件：半透明 + 模糊 + 白描边 + 内高光 + 柔和外阴影 */
 const CONTROL =
-  "w-full rounded-control border border-transparent bg-canvas px-3.5 py-2.5 text-[15px] text-ink outline-none transition-all duration-250 ease-out-soft placeholder:text-subtle/70 focus:border-accent focus:bg-white";
+  "w-full rounded-control border border-[rgba(255,255,255,0.85)] bg-white/55 px-3.5 py-2.5 text-[15px] text-[#1d1d1f] outline-none backdrop-blur-md shadow-[inset_0_1px_0_rgba(255,255,255,0.9),0_2px_8px_rgba(0,0,0,0.06)] transition-all duration-250 ease-out-soft placeholder:text-[#86868b] focus:border-[#0071e3] focus:shadow-[inset_0_1px_0_rgba(255,255,255,0.9),0_0_0_3px_rgba(0,113,227,0.15)]";
+
+/** 主按钮：上亮下暗渐变 + 内高光 / 内阴影 + 蓝色光晕 */
+const PRIMARY_BTN =
+  "relative flex w-full items-center justify-center gap-2 rounded-button px-6 py-3 text-[16px] font-medium text-white [background:linear-gradient(180deg,#2b8cff_0%,#0071e3_100%)] [text-shadow:0_1px_1px_rgba(0,0,0,0.15)] shadow-[inset_0_1px_0_rgba(255,255,255,0.35),inset_0_-1px_0_rgba(0,0,0,0.15),0_4px_14px_rgba(0,113,227,0.35)] transition-all duration-250 ease-out-soft hover:brightness-[1.08] hover:shadow-[inset_0_1px_0_rgba(255,255,255,0.4),inset_0_-1px_0_rgba(0,0,0,0.12),0_6px_20px_rgba(0,113,227,0.48)] active:scale-[0.98] active:shadow-[inset_0_1px_0_rgba(255,255,255,0.3),inset_0_-1px_0_rgba(0,0,0,0.2),0_2px_8px_rgba(0,113,227,0.22)] disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:brightness-100";
 
 const LABEL = "mb-2 block text-[13px] text-subtle";
+
+/** 航班报价里最近一条采集时间，没有则回落到分析完成时刻 */
+function latestCaptureClock(flights: FlightPriceRow[], fallback: string): string {
+  let max = 0;
+  for (const f of flights) {
+    const t = new Date(f.captured_at).getTime();
+    if (!Number.isNaN(t) && t > max) max = t;
+  }
+  if (!max) return fallback || "—";
+  return new Date(max).toLocaleTimeString("zh-CN", {
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+}
 
 /** 卡片头部：圆形浅色底图标 + 标题 */
 function CardHeader({
@@ -214,7 +233,18 @@ export default function App() {
   const signalStyle = SIGNAL_STYLE[signal];
 
   return (
-    <div className="app-bg min-h-screen font-sans">
+    <div className="relative min-h-screen font-sans">
+      {/* 固定光斑：给毛玻璃提供可透的色块，不随滚动 */}
+      <div
+        aria-hidden="true"
+        className="pointer-events-none fixed inset-0 z-0 overflow-hidden bg-[#f5f5f7]"
+      >
+        <div className="absolute -left-24 -top-32 h-[500px] w-[500px] rounded-full bg-[rgba(0,113,227,0.15)] blur-3xl" />
+        <div className="absolute -right-16 -top-20 h-[400px] w-[400px] rounded-full bg-[rgba(160,120,255,0.12)] blur-3xl" />
+        <div className="absolute bottom-[-90px] left-1/2 h-[450px] w-[450px] -translate-x-1/2 rounded-full bg-[rgba(0,200,180,0.10)] blur-3xl" />
+      </div>
+
+      <div className="relative z-10">
       <TopBar />
 
       {/* 错误提示条，3 秒自动消失 */}
@@ -232,7 +262,7 @@ export default function App() {
         </section>
 
         {/* 查询卡片：居中，最大 720px */}
-        <section className="mx-auto mb-12 w-full max-w-[720px] animate-rise-in rounded-card bg-white p-8 shadow-card">
+        <section className="relative z-20 mx-auto mb-12 w-full max-w-[720px] animate-rise-in rounded-card border border-[rgba(255,255,255,0.85)] bg-white/40 p-8 shadow-card backdrop-blur-xl">
           <div className="grid gap-5 sm:grid-cols-2">
             {/* 搜索式城市选择：中文 / 拼音 / 三字码都能匹配 */}
             <CitySearchInput
@@ -250,16 +280,12 @@ export default function App() {
               placeholder="城市 / 拼音 / 三字码"
             />
 
-            <label className="block">
-              <span className={LABEL}>航班日期</span>
-              <input
-                type="date"
-                className={CONTROL}
-                value={form.flightDate}
-                onChange={(e) => updateForm("flightDate", e.target.value)}
-                onKeyDown={handleKeyDown}
-              />
-            </label>
+            <DatePicker
+              label="航班日期"
+              value={form.flightDate}
+              onChange={(date) => updateForm("flightDate", date)}
+              onEnter={handleAnalyze}
+            />
             <label className="block">
               <span className={LABEL}>目标价（可留空）</span>
               <input
@@ -281,7 +307,7 @@ export default function App() {
             type="button"
             onClick={handleAnalyze}
             disabled={loading}
-            className="mt-7 flex w-full items-center justify-center gap-2 rounded-button bg-accent px-6 py-3 text-[16px] font-medium text-white transition-all duration-250 ease-out-soft hover:bg-accent-dark hover:shadow-[0_4px_16px_rgba(0,113,227,0.30)] disabled:cursor-not-allowed disabled:opacity-50"
+            className={`mt-7 ${PRIMARY_BTN}`}
           >
             {loading && <Spinner />}
             {loading ? "分析中..." : "开始分析"}
@@ -329,27 +355,44 @@ export default function App() {
           />
         </section>
 
-        {/* 三张 Agent 卡片：等宽三列，间距 24px */}
-        <section className="grid gap-6 md:grid-cols-3">
+        {/* 三张 Agent 卡片：等宽三列，间距 24px，底部对齐 */}
+        <section className="grid items-stretch gap-6 md:grid-cols-3">
           {/* Monitor */}
           <div className={CARD}>
             {loading ? (
-              <CardSkeleton rows={2} />
+              <CardSkeleton rows={4} />
             ) : (
               <>
                 <CardHeader
                   icon={<IconWave />}
-                  title="Monitor"
-                  subtitle="价格采集"
+                  title="价格采集"
+                  subtitle="Monitor"
+                  trailing={
+                    monitor ? (
+                      <span className="flex items-center gap-1.5 text-[13px] font-medium text-[#1a8c3c]">
+                        <span className="h-1.5 w-1.5 rounded-full bg-[#34c759]" />
+                        采集正常
+                      </span>
+                    ) : undefined
+                  }
                 />
                 {monitor ? (
-                  <div className="animate-rise-in">
+                  <div className="flex flex-1 flex-col animate-rise-in">
                     <p className="text-[56px] font-bold leading-none tracking-tighter text-ink">
                       <AnimatedNumber value={monitor.inserted} />
                     </p>
-                    <p className="mt-4 text-[13px] text-subtle">
-                      条报价已入库 · {monitor.origin} → {monitor.destination}
-                    </p>
+                    <p className="mt-3 text-[13px] text-subtle">条报价</p>
+                    <div className="mt-auto divide-y divide-hairline/60 border-t border-hairline/60 pt-1">
+                      <StatRow
+                        label="航线"
+                        value={`${monitor.origin} → ${monitor.destination}`}
+                      />
+                      <StatRow
+                        label="最近采集"
+                        value={latestCaptureClock(flights, updatedAt)}
+                      />
+                      <StatRow label="采集频率" value="每 30 分钟" />
+                    </div>
                   </div>
                 ) : (
                   <Placeholder />
@@ -382,7 +425,7 @@ export default function App() {
                   }
                 />
                 {analyst ? (
-                  <div className="animate-rise-in">
+                  <div className="flex flex-1 flex-col animate-rise-in">
                     <p className="text-[48px] font-bold leading-none tracking-tighter text-ink">
                       {analyst.current != null ? (
                         <AnimatedNumber value={analyst.current} prefix="¥" />
@@ -391,31 +434,33 @@ export default function App() {
                       )}
                     </p>
                     <p className="mt-3 text-[13px] text-subtle">当前最低价</p>
-                    <div className="mt-5 divide-y divide-hairline/60 border-t border-hairline/60">
-                      <StatRow
-                        label="均价"
-                        value={`¥${analyst.mean?.toFixed(0) ?? "—"}`}
-                      />
-                      <StatRow
-                        label="历史最低"
-                        value={`¥${analyst.min?.toFixed(0) ?? "—"}`}
-                      />
-                      <StatRow
-                        label="更便宜天数占比"
-                        value={
-                          analyst.pct != null
-                            ? `${(analyst.pct * 100).toFixed(0)}%`
-                            : "—"
-                        }
-                      />
-                      <StatRow
-                        label="置信度"
-                        value={`${(analyst.confidence * 100).toFixed(0)}%`}
-                      />
+                    <div className="mt-auto">
+                      <div className="divide-y divide-hairline/60 border-t border-hairline/60">
+                        <StatRow
+                          label="均价"
+                          value={`¥${analyst.mean?.toFixed(0) ?? "—"}`}
+                        />
+                        <StatRow
+                          label="历史最低"
+                          value={`¥${analyst.min?.toFixed(0) ?? "—"}`}
+                        />
+                        <StatRow
+                          label="更便宜天数占比"
+                          value={
+                            analyst.pct != null
+                              ? `${(analyst.pct * 100).toFixed(0)}%`
+                              : "—"
+                          }
+                        />
+                        <StatRow
+                          label="置信度"
+                          value={`${(analyst.confidence * 100).toFixed(0)}%`}
+                        />
+                      </div>
+                      <p className="mt-5 text-[13px] leading-relaxed text-subtle">
+                        {analyst.reason}
+                      </p>
                     </div>
-                    <p className="mt-5 text-[13px] leading-relaxed text-subtle">
-                      {analyst.reason}
-                    </p>
                   </div>
                 ) : (
                   <Placeholder />
@@ -443,29 +488,31 @@ export default function App() {
                   }
                 />
                 {advisor ? (
-                  <div className="animate-rise-in">
+                  <div className="flex flex-1 flex-col animate-rise-in">
                     <p className="text-[40px] font-bold leading-none tracking-tighter text-ink">
                       {advisor.recommendation}
                     </p>
                     <p className="mt-5 text-[17px] leading-relaxed text-ink/80">
                       {advisor.message}
                     </p>
-                    <p className="mt-6 border-t border-hairline/60 pt-4 text-[13px] text-subtle">
-                      建议动作：{advisor.suggested_action}
-                      {advisor.llm_used && " · LLM 增强"}
-                    </p>
-                    <a
-                      href={ctripOnewayUrl(
-                        queried?.origin ?? form.origin,
-                        queried?.destination ?? form.destination,
-                        queried?.date ?? form.flightDate
-                      )}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="mt-6 flex w-full items-center justify-center rounded-button bg-accent px-6 py-3 text-[16px] font-medium text-white transition-all duration-250 ease-out-soft hover:bg-accent-dark hover:shadow-[0_4px_16px_rgba(0,113,227,0.30)]"
-                    >
-                      去购买
-                    </a>
+                    <div className="mt-auto">
+                      <p className="mt-6 border-t border-hairline/60 pt-4 text-[13px] text-subtle">
+                        建议动作：{advisor.suggested_action}
+                        {advisor.llm_used && " · LLM 增强"}
+                      </p>
+                      <a
+                        href={ctripOnewayUrl(
+                          queried?.origin ?? form.origin,
+                          queried?.destination ?? form.destination,
+                          queried?.date ?? form.flightDate
+                        )}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className={`mt-6 ${PRIMARY_BTN}`}
+                      >
+                        去购买
+                      </a>
+                    </div>
                   </div>
                 ) : (
                   <Placeholder />
@@ -479,6 +526,7 @@ export default function App() {
       {/* 右下角数据来源标签 */}
       <div className="pointer-events-none fixed bottom-4 right-4 z-30 rounded-full border border-hairline/60 bg-white/72 px-3.5 py-1.5 text-[12px] text-subtle shadow-bar backdrop-blur-xl">
         数据来源：模拟数据（可替换真实 API）
+      </div>
       </div>
     </div>
   );

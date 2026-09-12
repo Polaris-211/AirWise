@@ -107,7 +107,7 @@ export default function MonitorStatus() {
         type="button"
         onClick={handleRunNow}
         disabled={busy}
-        className="whitespace-nowrap rounded-[10px] border border-hairline/70 px-2.5 py-1 text-[13px] text-accent transition-all duration-250 ease-out-soft hover:border-hairline hover:bg-canvas active:scale-[0.97] disabled:cursor-not-allowed disabled:opacity-50"
+        className="whitespace-nowrap rounded-[10px] border border-white bg-white/60 px-2.5 py-1 text-[13px] text-accent backdrop-blur-sm transition-all duration-250 ease-out-soft hover:bg-white/80 active:scale-[0.97] disabled:cursor-not-allowed disabled:opacity-50"
       >
         {busy ? "监测中…" : "立即监测"}
       </button>

@@ -41,12 +41,12 @@ export default function BaggageToggle({
 
         {/* 第 3 层 滑块：22px 玻璃球，左右各留 1px */}
         <span
-          className={`absolute left-[1px] top-[1px] block h-[22px] w-[22px] rounded-full border border-[rgba(255,255,255,0.9)] bg-[rgba(255,255,255,0.45)] shadow-[0_2px_6px_rgba(0,0,0,0.15)] backdrop-blur-md transition-transform duration-250 ease-[cubic-bezier(0.4,0,0.2,1)] ${
+          className={`absolute left-[1px] top-[1px] block h-[22px] w-[22px] rounded-full border-[1.5px] border-[rgba(255,255,255,0.95)] bg-[rgba(255,255,255,0.35)] shadow-[0_2px_8px_rgba(0,0,0,0.18)] backdrop-blur-md transition-transform duration-250 ease-[cubic-bezier(0.4,0,0.2,1)] ${
             checked ? "translate-x-[22px]" : "translate-x-0"
           }`}
         >
-          {/* 顶部高光：上亮下淡，下半部几乎不遮挡，轨道颜色从球底透出来 */}
-          <span className="absolute inset-0 rounded-full bg-[linear-gradient(180deg,rgba(255,255,255,0.9),rgba(255,255,255,0.2))]" />
+          {/* 顶部高光只铺上半，下半透出轨道颜色 */}
+          <span className="pointer-events-none absolute inset-x-0 top-0 h-1/2 rounded-t-full bg-[linear-gradient(180deg,rgba(255,255,255,0.85),rgba(255,255,255,0))]" />
         </span>
       </span>
 
